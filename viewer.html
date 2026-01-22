@@ -1,0 +1,403 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+  <title>Model Divergence Viewer</title>
+  <style>
+    :root {
+      --bg: #0f172a;
+      --card: #111827;
+      --text: #e5e7eb;
+      --muted: #94a3b8;
+      --accent: #22d3ee;
+      --border: #1f2937;
+    }
+    * { box-sizing: border-box; }
+    body {
+      margin: 0;
+      font-family: "Segoe UI", sans-serif;
+      background: radial-gradient(circle at 20% 20%, #0b1224 0, #0b1224 30%, #0a1020 70%, #080d1a 100%);
+      color: var(--text);
+      min-height: 100vh;
+      display: flex;
+      flex-direction: column;
+      gap: 10px;
+      padding: 10px 14px 12px;
+      overflow-y: auto;
+    }
+    header {
+      display: flex;
+      flex-direction: column;
+      align-items: stretch;
+      gap: 12px;
+      width: 100%;
+    }
+    .controls {
+      background: var(--card);
+      border: 1px solid var(--border);
+      padding: 12px 14px;
+      border-radius: 10px;
+      display: grid;
+      grid-template-columns: 1fr;
+      gap: 10px;
+      width: 100%;
+    }
+    .slider-wrap {
+      display: grid;
+      grid-template-columns: auto 1fr auto;
+      align-items: center;
+      gap: 10px;
+      width: 100%;
+    }
+    input[type=range] {
+      width: 100%;
+      accent-color: var(--accent);
+    }
+    .label-chip {
+      padding: 6px 10px;
+      border-radius: 8px;
+      background: #0c162c;
+      border: 1px solid var(--border);
+      font-size: 12px;
+      color: var(--muted);
+    }
+    .groups {
+      display: flex;
+      flex-direction: column;
+      gap: 18px;
+      width: 100%;
+      flex: 1;
+      min-height: 0;
+      overflow: visible;
+      padding-right: 4px;
+    }
+
+    .group-section {
+      display: flex;
+      flex-direction: column;
+      gap: 10px;
+      min-height: 80vh;
+    }
+
+    .group-scroll {
+      flex: 1;
+      min-height: 0;
+      max-height: 80vh;
+      overflow-y: auto;
+      padding-right: 4px;
+    }
+
+    .grid {
+      display: grid;
+      grid-template-columns: repeat(auto-fit, minmax(380px, 1fr));
+      grid-auto-rows: minmax(0, 1fr);
+      gap: 12px;
+      width: 100%;
+      min-height: 0;
+    }
+    .panel {
+      background: var(--card);
+      border: 1px solid var(--border);
+      border-radius: 10px;
+      padding: 8px;
+      display: flex;
+      flex-direction: column;
+      gap: 6px;
+      min-height: 0;
+      height: 100%;
+    }
+    .img-wrap {
+      position: relative;
+      width: 100%;
+      flex: 1;
+      aspect-ratio: 16 / 9;
+      min-height: 0;
+    }
+    @media (min-width: 1100px) {
+      .grid {
+        grid-template-columns: repeat(3, minmax(0, 1fr));
+        grid-auto-rows: minmax(0, 1fr);
+        height: 100%;
+      }
+    }
+    .panel-header {
+      display: flex;
+      justify-content: space-between;
+      align-items: center;
+      font-size: 13px;
+      color: var(--muted);
+    }
+    .panel-header .name {
+      font-weight: 600;
+      color: var(--text);
+    }
+    .panel img {
+      width: 100%;
+      height: 100%;
+      object-fit: contain;
+      background: transparent;
+      border-radius: 6px;
+      border: 1px dashed var(--border);
+      display: block;
+    }
+    .panel img.no-src {
+      border-color: transparent;
+      background: transparent;
+      opacity: 0;
+    }
+    .no-data {
+      position: absolute;
+      inset: 0;
+      display: flex;
+      align-items: center;
+      justify-content: center;
+      color: var(--text);
+      font-weight: 700;
+      letter-spacing: 0.08em;
+      background: transparent;
+      border-radius: 6px;
+      border: 1px dashed transparent;
+      pointer-events: none;
+    }
+    .hidden { display: none; }
+    .footer-note {
+      color: var(--muted);
+      font-size: 12px;
+      margin: 0;
+      padding: 0 2px 4px;
+      flex-shrink: 0;
+    }
+  </style>
+</head>
+<body>
+  <header>
+    <div class="title">Pivotal Weather Model Divergence Viewer</div>
+  </header>
+
+  <div class="groups" id="groups"></div>
+
+  <div class="footer-note">Drag the slider to switch forecast hour. Blank panels indicate no data for that model at the selected hour.</div>
+
+  <script>
+    // Groups payload is injected by FastAPI/Jinja.
+    const groups = {{ groups_json|safe }};
+
+    const groupsEl = document.getElementById("groups");
+
+    // 1x1 transparent GIF to avoid broken-icon rendering
+    const placeholder = "data:image/png;base64,iVBORw0KGgoAAAANSUhEUgAAAAEAAAABCAQAAAC1HAwCAAAAC0lEQVR42mP8/x8AAusB9Y9ofu8AAAAASUVORK5CYII=";
+
+    function preloadAndSwap(img, noData, src) {
+      // If we already have this image applied, do nothing.
+      if (img.dataset.lastGood === src) {
+        noData.classList.add("hidden");
+        return;
+      }
+
+      img.dataset.pending = src;
+      const loader = new Image();
+      loader.onload = () => {
+        // Only swap if still the intended target.
+        if (img.dataset.pending === src) {
+          img.src = src;
+          img.dataset.lastGood = src;
+          noData.classList.add("hidden");
+          img.classList.remove("no-src");
+        }
+      };
+      loader.onerror = () => {
+        // Keep current image to avoid flicker; if none yet, show placeholder + NO DATA.
+        if (!img.dataset.lastGood) {
+          img.src = placeholder;
+          noData.classList.remove("hidden");
+          img.classList.add("no-src");
+        }
+        // Prevent broken icon by clearing pending target
+        img.dataset.pending = "";
+      };
+      loader.src = src;
+    }
+
+    function formatFhr(n) {
+      return `f${n.toString().padStart(3, "0")}`;
+    }
+
+    function modelId(model) {
+      return model.id;
+    }
+
+    function buildLookup(models) {
+      const byModel = new Map();
+      for (const m of models) {
+        const table = new Map();
+        for (const frame of m.frames || []) {
+          table.set(Number(frame.fhr), frame.url);
+        }
+        byModel.set(modelId(m), table);
+      }
+      return byModel;
+    }
+
+    function createPanel(model) {
+      const panel = document.createElement("div");
+      panel.className = "panel";
+
+      const header = document.createElement("div");
+      header.className = "panel-header";
+      const nameSpan = document.createElement("span");
+      nameSpan.className = "name";
+      nameSpan.textContent = model.name.toUpperCase();
+      const runSpan = document.createElement("span");
+      runSpan.textContent = `run ${model.run}`;
+      header.appendChild(nameSpan);
+      header.appendChild(runSpan);
+
+      const imgWrap = document.createElement("div");
+      imgWrap.className = "img-wrap";
+
+      const img = document.createElement("img");
+      img.alt = `${model.name} forecast`;
+      img.loading = "lazy";
+      img.dataset.modelId = modelId(model);
+      img.src = placeholder; // Prevent broken icon before first load
+      // Errors are handled via preloadAndSwap to prevent flicker.
+
+      const noData = document.createElement("div");
+      noData.className = "no-data hidden";
+      noData.textContent = "NO DATA";
+
+      imgWrap.appendChild(img);
+      imgWrap.appendChild(noData);
+
+      panel.appendChild(header);
+      panel.appendChild(imgWrap);
+      return { panel, img, noData };
+    }
+
+    function renderGroups() {
+      groupsEl.innerHTML = "";
+      const allParts = [];
+
+      for (const group of groups) {
+        const section = document.createElement("section");
+        section.className = "group-section";
+
+        const header = document.createElement("div");
+        header.textContent = group.name;
+        header.style.fontWeight = "700";
+        header.style.padding = "4px 2px 0";
+
+        const controls = document.createElement("div");
+        controls.className = "slider-wrap";
+
+        const label = document.createElement("label");
+        label.textContent = "Forecast hour";
+        label.style.fontSize = "12px";
+        label.style.color = "var(--muted)";
+
+        const minFhr = Math.min(...(group.models || []).map((m) => Number(m.min_fhr)));
+        const maxFhr = Math.max(...(group.models || []).map((m) => Number(m.max_fhr)));
+
+        const slider = document.createElement("input");
+        slider.type = "range";
+        slider.min = minFhr;
+        slider.max = maxFhr;
+        slider.step = 1;
+        slider.value = minFhr;
+
+        const chip = document.createElement("span");
+        chip.className = "label-chip";
+        chip.textContent = formatFhr(minFhr);
+
+        controls.appendChild(label);
+        controls.appendChild(slider);
+        controls.appendChild(chip);
+
+        const grid = document.createElement("div");
+        grid.className = "grid group-scroll";
+
+        const parts = group.models.map(createPanel);
+        for (const { panel } of parts) {
+          grid.appendChild(panel);
+        }
+
+        section.appendChild(header);
+        section.appendChild(controls);
+        section.appendChild(grid);
+        groupsEl.appendChild(section);
+
+        allParts.push({ groupName: group.name, parts, slider, chip, min: minFhr, max: maxFhr });
+      }
+
+      return allParts;
+    }
+
+    function showNoData(groupCtx, labelFhr) {
+      groupCtx.chip.textContent = formatFhr(labelFhr);
+      for (const { img, noData } of groupCtx.parts) {
+        img.dataset.pending = "";
+        img.dataset.lastGood = "";
+        img.classList.add("no-src");
+        img.src = placeholder;
+        noData.classList.remove("hidden");
+        img.style.opacity = "0";
+      }
+    }
+
+    function updateGroup(groupCtx, fhr, lookup) {
+      groupCtx.chip.textContent = formatFhr(fhr);
+      const groupModel = groups.find((g) => g.name === groupCtx.groupName) || { models: [] };
+
+      for (const { img, noData } of groupCtx.parts) {
+        const model = groupModel.models.find((m) => modelId(m) === img.dataset.modelId);
+        if (!model) {
+          continue;
+        }
+        const table = lookup.get(img.dataset.modelId);
+        const src = table ? table.get(fhr) : null;
+
+        if (src) {
+          preloadAndSwap(img, noData, src);
+          img.style.opacity = "1";
+          noData.classList.add("hidden");
+        } else if (fhr >= model.min_fhr && fhr <= model.max_fhr) {
+          img.dataset.pending = "";
+          if (img.dataset.lastGood) {
+            noData.classList.add("hidden");
+            img.classList.remove("no-src");
+            img.style.opacity = "1";
+          }
+        } else {
+          img.dataset.pending = "";
+          img.dataset.lastGood = "";
+          img.classList.add("no-src");
+          img.src = placeholder;
+          noData.classList.remove("hidden");
+          img.style.opacity = "0";
+        }
+      }
+    }
+
+    function init() {
+      const allModels = groups.flatMap((g) => g.models);
+      const lookup = buildLookup(allModels);
+      const groupContexts = renderGroups();
+
+      for (const ctx of groupContexts) {
+        updateGroup(ctx, ctx.min, lookup);
+        ctx.slider.addEventListener("input", () => {
+          const raw = Number(ctx.slider.value);
+          if (raw < ctx.min || raw > ctx.max || Number.isNaN(raw)) {
+            showNoData(ctx, Number.isFinite(raw) ? raw : 0);
+            return;
+          }
+          updateGroup(ctx, raw, lookup);
+        });
+      }
+    }
+
+    init();
+  </script>
+</body>
+</html>
