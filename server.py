@@ -1,128 +1,33 @@
 """
-FastAPI server for local testing with templated viewer.
-- Serves viewer template at root with dynamically discovered runs.
-- Exposes /static for assets (data/raw imagery included).
+Minimal FastAPI server to serve pre-rendered viewer and static assets.
+Run fetch_models.py first to generate viewer_rendered.html.
 """
 from __future__ import annotations
 
-import json
-import re
-from datetime import datetime, timedelta
 from pathlib import Path
-from typing import Dict, List, Optional
+from typing import Dict, List
 
-from fastapi import FastAPI, HTTPException, Request
-from fastapi.responses import JSONResponse
+from fastapi import FastAPI, HTTPException
+from fastapi.responses import FileResponse, JSONResponse
 from fastapi.staticfiles import StaticFiles
-from fastapi.templating import Jinja2Templates
-
-from fetch_models import MODELS, MODEL_GROUPS, ModelConfig, ModelGroup
 
 BASE_DIR = Path(__file__).parent.resolve()
-VIEWER_FILE = BASE_DIR / "viewer.html"
+RENDERED_VIEW = BASE_DIR / "index.html"
 DATA_DIR = BASE_DIR / "data" / "raw"
 
 app = FastAPI(title="Whistler Epic Weather Viewer", version="0.2.0")
 
 # Serve everything in the repo as static assets so the data/raw tree is reachable.
 app.mount("/static", StaticFiles(directory=BASE_DIR), name="static")
-templates = Jinja2Templates(directory=str(BASE_DIR))
-
-
-def _latest_run_dir(model_name: str) -> Optional[Path]:
-    model_dir = DATA_DIR / model_name
-    if not model_dir.exists():
-        return None
-    run_dirs = sorted([p for p in model_dir.iterdir() if p.is_dir()], reverse=True)
-    return run_dirs[0] if run_dirs else None
-
-
-_FHR_RE = re.compile(r"_f(\d{3})_")
-
-
-def _frames_in_run(model_name: str, run_dir: Path) -> List[Dict[str, object]]:
-    frames: List[Dict[str, object]] = []
-    base_dt = datetime.strptime(run_dir.name, "%Y%m%d%H")
-
-    for file in sorted(run_dir.iterdir()):
-        if not file.is_file():
-            continue
-        m = _FHR_RE.search(file.name)
-        if not m:
-            continue
-        fhr = int(m.group(1))
-
-        timestamp = (base_dt + timedelta(hours=fhr)).strftime("%Y%m%d%H")
-        frames.append({"timestamp": timestamp, "url": f"/static/data/raw/{model_name}/{run_dir.name}/{file.name}"})
-
-    frames.sort(key=lambda f: f["timestamp"])
-    return frames
-
-
-def build_model_payload(model: ModelConfig) -> Optional[Dict[str, object]]:
-    run_dir = _latest_run_dir(model.name)
-    if not run_dir:
-        return None
-    run_name = run_dir.name
-    frames = _frames_in_run(model.name, run_dir)
-    if not frames:
-        return None
-    min_ts = min(f.get("timestamp", "") for f in frames)
-    max_ts = max(f.get("timestamp", "") for f in frames)
-    return {
-        "id": f"{model.name}_{model.product}",
-        "name": model.name,
-        "run": run_name,
-        "frames": frames,
-        "min_timestamp": min_ts,
-        "max_timestamp": max_ts,
-    }
-
-
-def _hours_between(start_ts: str, end_ts: str) -> int:
-    start = datetime.strptime(start_ts, "%Y%m%d%H")
-    end = datetime.strptime(end_ts, "%Y%m%d%H")
-    delta = end - start
-    return max(0, int(delta.total_seconds() // 3600))
+app.mount("/data", StaticFiles(directory=BASE_DIR / "data"), name="data")
 
 
 @app.get("/")
-async def root(request: Request):
-    if not VIEWER_FILE.exists():
-        raise HTTPException(status_code=404, detail="viewer.html not found")
-    groups_payload: List[Dict[str, object]] = []
-    for grp in MODEL_GROUPS:
-        models_payload: List[Dict[str, object]] = []
-        for m in grp.models:
-            payload = build_model_payload(m)
-            if payload:
-                models_payload.append(payload)
-        if models_payload:
-            group_min_ts = min(m["min_timestamp"] for m in models_payload)
-            group_max_ts = max(m["max_timestamp"] for m in models_payload)
-            span_hours = _hours_between(group_min_ts, group_max_ts)
-            common: Optional[set[str]] = None
-            for model in models_payload:
-                ts_set = {frame["timestamp"] for frame in model.get("frames", [])}
-                common = ts_set if common is None else common & ts_set
-                if common is not None and not common:
-                    break
-
-            start_ts = min(common) if common else group_min_ts
-            groups_payload.append(
-                {
-                    "name": grp.name,
-                    "models": models_payload,
-                    "min_timestamp": group_min_ts,
-                    "max_timestamp": group_max_ts,
-                    "span_hours": span_hours,
-                    "start_timestamp": start_ts,
-                }
-            )
-    return templates.TemplateResponse(
-        "viewer.html",
-        {"request": request, "groups_json": json.dumps(groups_payload)},
-    )
+async def root():
+    target = RENDERED_VIEW
+    if not target.exists():
+        raise HTTPException(status_code=404, detail="viewer file not found; run fetch_models.py to generate it")
+    return FileResponse(target)
 
 
 @app.get("/health")

@@ -107,6 +107,7 @@
       min-height: 0;
       height: 100%;
     }
+    .panel.collapsed { display: none; }
     .img-wrap {
       position: relative;
       width: 100%;
@@ -127,11 +128,32 @@
       align-items: center;
       font-size: 13px;
       color: var(--muted);
+      gap: 6px;
     }
     .panel-header .name {
       font-weight: 600;
       color: var(--text);
     }
+    .panel-header .actions { display: flex; gap: 6px; align-items: center; }
+    .ghost-btn {
+      border: 1px solid var(--border);
+      background: #0c162c;
+      color: var(--muted);
+      border-radius: 6px;
+      padding: 4px 8px;
+      font-size: 12px;
+      cursor: pointer;
+      transition: all 0.15s ease;
+    }
+    .ghost-btn:hover { color: var(--text); border-color: var(--accent); }
+    .hidden-bar {
+      display: flex;
+      flex-wrap: wrap;
+      gap: 8px;
+      padding: 6px 2px 0;
+      min-height: 0;
+    }
+    .hidden-bar.hidden { display: none; }
     .panel img {
       width: 100%;
       height: 100%;
@@ -283,7 +305,7 @@
       return byModel;
     }
 
-    function createPanel(model) {
+    function createPanel(model, hiddenBar) {
       const panel = document.createElement("div");
       panel.className = "panel";
 
@@ -294,8 +316,48 @@
       nameSpan.textContent = model.name.toUpperCase();
       const runSpan = document.createElement("span");
       runSpan.textContent = `run ${model.run}`;
+      const actions = document.createElement("div");
+      actions.className = "actions";
+      actions.appendChild(runSpan);
+
+      const hideBtn = document.createElement("button");
+      hideBtn.type = "button";
+      hideBtn.className = "ghost-btn";
+      hideBtn.textContent = "HIDE";
+
+      const addRestoreChip = () => {
+        if (!hiddenBar) return;
+        hiddenBar.classList.remove("hidden");
+        const tag = document.createElement("button");
+        tag.type = "button";
+        tag.className = "ghost-btn";
+        tag.textContent = `SHOW ${model.name.toUpperCase()}`;
+        const restore = () => {
+          panel.classList.remove("collapsed");
+          panel.style.display = "";
+          hideBtn.textContent = "HIDE";
+          tag.removeEventListener("click", restore);
+          tag.remove();
+          if (!hiddenBar.querySelector("button")) {
+            hiddenBar.classList.add("hidden");
+          }
+        };
+        tag.addEventListener("click", restore);
+        hiddenBar.appendChild(tag);
+      };
+
+      const collapse = () => {
+        panel.classList.add("collapsed");
+        panel.style.display = "none";
+        hideBtn.textContent = "SHOW";
+        addRestoreChip();
+      };
+
+      hideBtn.addEventListener("click", collapse);
+
+      actions.appendChild(hideBtn);
       header.appendChild(nameSpan);
-      header.appendChild(runSpan);
+      header.appendChild(actions);
 
       const imgWrap = document.createElement("div");
       imgWrap.className = "img-wrap";
@@ -316,6 +378,10 @@
 
       panel.appendChild(header);
       panel.appendChild(imgWrap);
+      if (model.hide) {
+        collapse();
+      }
+
       return { panel, img, noData };
     }
 
@@ -365,16 +431,20 @@
         controls.appendChild(slider);
         controls.appendChild(chip);
 
+        const hiddenBar = document.createElement("div");
+        hiddenBar.className = "hidden-bar hidden";
+
         const grid = document.createElement("div");
         grid.className = "grid group-scroll";
 
-        const parts = group.models.map(createPanel);
+        const parts = group.models.map((m) => createPanel(m, hiddenBar));
         for (const { panel } of parts) {
           grid.appendChild(panel);
         }
 
         section.appendChild(header);
         section.appendChild(controls);
+        section.appendChild(hiddenBar);
         section.appendChild(grid);
         groupsEl.appendChild(section);
 
