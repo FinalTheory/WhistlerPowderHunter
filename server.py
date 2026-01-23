@@ -7,6 +7,7 @@ from __future__ import annotations
 
 import json
 import re
+from datetime import datetime, timedelta
 from pathlib import Path
 from typing import Dict, List, Optional
 
@@ -41,18 +42,20 @@ _FHR_RE = re.compile(r"_f(\d{3})_")
 
 def _frames_in_run(model_name: str, run_dir: Path) -> List[Dict[str, object]]:
     frames: List[Dict[str, object]] = []
+    base_dt = datetime.strptime(run_dir.name, "%Y%m%d%H")
+
     for file in sorted(run_dir.iterdir()):
         if not file.is_file():
             continue
         m = _FHR_RE.search(file.name)
         if not m:
             continue
-        try:
-            fhr = int(m.group(1))
-        except ValueError:
-            continue
-        frames.append({"fhr": fhr, "url": f"/static/data/raw/{model_name}/{run_dir.name}/{file.name}"})
-    frames.sort(key=lambda f: f["fhr"])
+        fhr = int(m.group(1))
+
+        timestamp = (base_dt + timedelta(hours=fhr)).strftime("%Y%m%d%H")
+        frames.append({"timestamp": timestamp, "url": f"/static/data/raw/{model_name}/{run_dir.name}/{file.name}"})
+
+    frames.sort(key=lambda f: f["timestamp"])
     return frames
 
 
@@ -64,16 +67,23 @@ def build_model_payload(model: ModelConfig) -> Optional[Dict[str, object]]:
     frames = _frames_in_run(model.name, run_dir)
     if not frames:
         return None
-    min_fhr = min(f.get("fhr", 0) for f in frames)
-    max_fhr = max(f.get("fhr", 0) for f in frames)
+    min_ts = min(f.get("timestamp", "") for f in frames)
+    max_ts = max(f.get("timestamp", "") for f in frames)
     return {
         "id": f"{model.name}_{model.product}",
         "name": model.name,
         "run": run_name,
         "frames": frames,
-        "min_fhr": min_fhr,
-        "max_fhr": max_fhr,
+        "min_timestamp": min_ts,
+        "max_timestamp": max_ts,
     }
+
+
+def _hours_between(start_ts: str, end_ts: str) -> int:
+    start = datetime.strptime(start_ts, "%Y%m%d%H")
+    end = datetime.strptime(end_ts, "%Y%m%d%H")
+    delta = end - start
+    return max(0, int(delta.total_seconds() // 3600))
 
 
 @app.get("/")
@@ -88,7 +98,27 @@ async def root(request: Request):
             if payload:
                 models_payload.append(payload)
         if models_payload:
-            groups_payload.append({"name": grp.name, "models": models_payload})
+            group_min_ts = min(m["min_timestamp"] for m in models_payload)
+            group_max_ts = max(m["max_timestamp"] for m in models_payload)
+            span_hours = _hours_between(group_min_ts, group_max_ts)
+            common: Optional[set[str]] = None
+            for model in models_payload:
+                ts_set = {frame["timestamp"] for frame in model.get("frames", [])}
+                common = ts_set if common is None else common & ts_set
+                if common is not None and not common:
+                    break
+
+            start_ts = min(common) if common else group_min_ts
+            groups_payload.append(
+                {
+                    "name": grp.name,
+                    "models": models_payload,
+                    "min_timestamp": group_min_ts,
+                    "max_timestamp": group_max_ts,
+                    "span_hours": span_hours,
+                    "start_timestamp": start_ts,
+                }
+            )
     return templates.TemplateResponse(
         "viewer.html",
         {"request": request, "groups_json": json.dumps(groups_payload)},

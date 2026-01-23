@@ -188,6 +188,54 @@
     // 1x1 transparent GIF to avoid broken-icon rendering
     const placeholder = "data:image/png;base64,iVBORw0KGgoAAAANSUhEUgAAAAEAAAABCAQAAAC1HAwCAAAAC0lEQVR42mP8/x8AAusB9Y9ofu8AAAAASUVORK5CYII=";
 
+    function parseTimestamp(ts) {
+      if (typeof ts !== "string" || ts.length !== 10) return null;
+      const year = Number(ts.slice(0, 4));
+      const month = Number(ts.slice(4, 6));
+      const day = Number(ts.slice(6, 8));
+      const hour = Number(ts.slice(8, 10));
+      if ([year, month, day, hour].some((n) => Number.isNaN(n))) return null;
+      return new Date(Date.UTC(year, month - 1, day, hour));
+    }
+
+    function formatUtcTimestamp(date) {
+      const yyyy = date.getUTCFullYear().toString().padStart(4, "0");
+      const mm = (date.getUTCMonth() + 1).toString().padStart(2, "0");
+      const dd = date.getUTCDate().toString().padStart(2, "0");
+      const hh = date.getUTCHours().toString().padStart(2, "0");
+      return `${yyyy}${mm}${dd}${hh}`;
+    }
+
+    function formatLocalLabelFromUtc(ts) {
+      const date = parseTimestamp(ts);
+      if (!date) return ts;
+      // America/Vancouver is UTC-8 or UTC-7 depending on DST. Using Intl for correctness.
+      const fmt = new Intl.DateTimeFormat("en-CA", {
+        timeZone: "America/Vancouver",
+        year: "numeric",
+        month: "2-digit",
+        day: "2-digit",
+        hour: "2-digit",
+        hour12: false,
+      });
+      const parts = fmt.formatToParts(date).reduce((acc, p) => ({ ...acc, [p.type]: p.value }), {});
+      return `${parts.year}-${parts.month}-${parts.day} ${parts.hour}:00 PT`;
+    }
+
+    function timestampFromOffset(baseTs, hoursOffset) {
+      const base = parseTimestamp(baseTs);
+      if (!base || Number.isNaN(hoursOffset)) return null;
+      const target = new Date(base.getTime() + hoursOffset * 3600000);
+      return formatUtcTimestamp(target);
+    }
+
+    function hoursBetween(baseTs, targetTs) {
+      const base = parseTimestamp(baseTs);
+      const target = parseTimestamp(targetTs);
+      if (!base || !target) return 0;
+      return Math.max(0, Math.floor((target.getTime() - base.getTime()) / 3600000));
+    }
+
     function preloadAndSwap(img, noData, src) {
       // If we already have this image applied, do nothing.
       if (img.dataset.lastGood === src) {
@@ -219,10 +267,6 @@
       loader.src = src;
     }
 
-    function formatFhr(n) {
-      return `f${n.toString().padStart(3, "0")}`;
-    }
-
     function modelId(model) {
       return model.id;
     }
@@ -232,7 +276,7 @@
       for (const m of models) {
         const table = new Map();
         for (const frame of m.frames || []) {
-          table.set(Number(frame.fhr), frame.url);
+          table.set(frame.timestamp, frame.url);
         }
         byModel.set(modelId(m), table);
       }
@@ -296,19 +340,26 @@
         label.style.fontSize = "12px";
         label.style.color = "var(--muted)";
 
-        const minFhr = Math.min(...(group.models || []).map((m) => Number(m.min_fhr)));
-        const maxFhr = Math.max(...(group.models || []).map((m) => Number(m.max_fhr)));
+        if (!group.min_timestamp || !group.max_timestamp) {
+          continue;
+        }
+
+        const minTs = group.min_timestamp;
+        const rangeHours = Number(group.span_hours) || 0;
+
+        const initialTs = group.start_timestamp || minTs;
+        const initialOffset = hoursBetween(minTs, initialTs);
 
         const slider = document.createElement("input");
         slider.type = "range";
-        slider.min = minFhr;
-        slider.max = maxFhr;
+        slider.min = 0;
+        slider.max = rangeHours;
         slider.step = 1;
-        slider.value = minFhr;
+        slider.value = initialOffset;
 
         const chip = document.createElement("span");
         chip.className = "label-chip";
-        chip.textContent = formatFhr(minFhr);
+        chip.textContent = formatLocalLabelFromUtc(initialTs);
 
         controls.appendChild(label);
         controls.appendChild(slider);
@@ -327,14 +378,14 @@
         section.appendChild(grid);
         groupsEl.appendChild(section);
 
-        allParts.push({ groupName: group.name, parts, slider, chip, min: minFhr, max: maxFhr });
+        allParts.push({ groupName: group.name, parts, slider, chip, minTimestamp: minTs, maxTimestamp: group.max_timestamp, startTimestamp: initialTs });
       }
 
       return allParts;
     }
 
-    function showNoData(groupCtx, labelFhr) {
-      groupCtx.chip.textContent = formatFhr(labelFhr);
+    function showNoData(groupCtx, labelTs) {
+      groupCtx.chip.textContent = formatLocalLabelFromUtc(labelTs);
       for (const { img, noData } of groupCtx.parts) {
         img.dataset.pending = "";
         img.dataset.lastGood = "";
@@ -345,8 +396,8 @@
       }
     }
 
-    function updateGroup(groupCtx, fhr, lookup) {
-      groupCtx.chip.textContent = formatFhr(fhr);
+    function updateGroup(groupCtx, targetTs, lookup) {
+      groupCtx.chip.textContent = formatLocalLabelFromUtc(targetTs);
       const groupModel = groups.find((g) => g.name === groupCtx.groupName) || { models: [] };
 
       for (const { img, noData } of groupCtx.parts) {
@@ -355,13 +406,18 @@
           continue;
         }
         const table = lookup.get(img.dataset.modelId);
-        const src = table ? table.get(fhr) : null;
+        const src = table ? table.get(targetTs) : null;
+        const modelMin = model.min_timestamp;
+        const modelMax = model.max_timestamp;
+        const withinRange = Boolean(
+          targetTs && modelMin && modelMax && targetTs >= modelMin && targetTs <= modelMax,
+        );
 
         if (src) {
           preloadAndSwap(img, noData, src);
           img.style.opacity = "1";
           noData.classList.add("hidden");
-        } else if (fhr >= model.min_fhr && fhr <= model.max_fhr) {
+        } else if (withinRange) {
           img.dataset.pending = "";
           if (img.dataset.lastGood) {
             noData.classList.add("hidden");
@@ -385,14 +441,15 @@
       const groupContexts = renderGroups();
 
       for (const ctx of groupContexts) {
-        updateGroup(ctx, ctx.min, lookup);
+        updateGroup(ctx, ctx.startTimestamp, lookup);
         ctx.slider.addEventListener("input", () => {
-          const raw = Number(ctx.slider.value);
-          if (raw < ctx.min || raw > ctx.max || Number.isNaN(raw)) {
-            showNoData(ctx, Number.isFinite(raw) ? raw : 0);
+          const offset = Number(ctx.slider.value);
+          const targetTs = timestampFromOffset(ctx.minTimestamp, offset);
+          if (!targetTs) {
+            showNoData(ctx, "");
             return;
           }
-          updateGroup(ctx, raw, lookup);
+          updateGroup(ctx, targetTs, lookup);
         });
       }
     }
