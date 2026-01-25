@@ -13,7 +13,7 @@ from fastapi.staticfiles import StaticFiles
 
 BASE_DIR = Path(__file__).parent.resolve()
 RENDERED_VIEW = BASE_DIR / "index.html"
-DATA_DIR = BASE_DIR / "data" / "raw"
+DATA_DIR = BASE_DIR / "data"
 
 app = FastAPI(title="Whistler Epic Weather Viewer", version="0.2.0")
 

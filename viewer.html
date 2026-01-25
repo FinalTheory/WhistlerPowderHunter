@@ -33,6 +33,31 @@
       gap: 12px;
       width: 100%;
     }
+    .title {
+      font-size: 28px;
+      font-weight: 800;
+      letter-spacing: 0.04em;
+    }
+    .synopsis {
+      background: var(--card);
+      border: 1px solid var(--border);
+      padding: 12px 14px;
+      border-radius: 10px;
+      display: flex;
+      flex-direction: column;
+      gap: 6px;
+    }
+    .synopsis-title {
+      font-weight: 700;
+      letter-spacing: 0.04em;
+      color: var(--text);
+    }
+    .synopsis-body {
+      color: var(--muted);
+      font-size: 14px;
+      line-height: 1.5;
+      white-space: pre-wrap;
+    }
     .controls {
       background: var(--card);
       border: 1px solid var(--border);
@@ -90,7 +115,7 @@
 
     .grid {
       display: grid;
-      grid-template-columns: repeat(auto-fit, minmax(380px, 1fr));
+      grid-template-columns: repeat(auto-fit, minmax(320px, 1fr));
       grid-auto-rows: minmax(0, 1fr);
       gap: 12px;
       width: 100%;
@@ -122,6 +147,18 @@
         height: 100%;
       }
     }
+    @media (max-width: 720px) {
+      body { padding: 10px 10px 12px; }
+      .group-section { gap: 14px; }
+      .controls { padding: 12px; }
+      .grid {
+        grid-template-columns: repeat(2, minmax(0, 1fr));
+        gap: 14px;
+      }
+      .panel { padding: 10px; }
+      .panel-header { align-items: center; }
+      .panel-header .actions { width: auto; justify-content: flex-start; }
+    }
     .panel-header {
       display: flex;
       justify-content: space-between;
@@ -129,12 +166,13 @@
       font-size: 13px;
       color: var(--muted);
       gap: 6px;
+      flex-wrap: wrap;
     }
     .panel-header .name {
       font-weight: 600;
       color: var(--text);
     }
-    .panel-header .actions { display: flex; gap: 6px; align-items: center; }
+    .panel-header .actions { display: flex; gap: 6px; align-items: center; flex-wrap: wrap; }
     .ghost-btn {
       border: 1px solid var(--border);
       background: #0c162c;
@@ -183,27 +221,56 @@
       pointer-events: none;
     }
     .hidden { display: none; }
+    .footer-bar {
+      display: flex;
+      align-items: center;
+      gap: 10px;
+      padding: 0 2px 4px;
+      flex-shrink: 0;
+      flex-wrap: wrap;
+    }
     .footer-note {
       color: var(--muted);
       font-size: 12px;
       margin: 0;
-      padding: 0 2px 4px;
-      flex-shrink: 0;
+    }
+    .log-link {
+      display: inline-block;
+      background: #0c162c;
+      border: 1px solid var(--border);
+      color: var(--accent);
+      padding: 6px 10px;
+      border-radius: 8px;
+      font-size: 12px;
+      text-decoration: none;
+      opacity: 0.85;
+      transition: opacity 120ms ease, box-shadow 120ms ease;
+    }
+    .log-link:hover {
+      opacity: 1;
+      box-shadow: 0 0 0 1px var(--border), 0 6px 18px rgba(0, 0, 0, 0.35);
     }
   </style>
 </head>
 <body>
   <header>
-    <div class="title">Pivotal Weather Model Divergence Viewer</div>
+    <div class="title">Whistler Powder Hunter</div>
   </header>
-
+  <section class="synopsis">
+    <div class="synopsis-title">Synopsis</div>
+    <div class="synopsis-body" id="synopsis">{{ synopsis_text|safe }}</div>
+  </section>
   <div class="groups" id="groups"></div>
 
-  <div class="footer-note">Drag the slider to switch forecast hour. Blank panels indicate no data for that model at the selected hour.</div>
+  <div class="footer-bar">
+    <div class="footer-note">Drag the slider to switch forecast hour. Blank panels indicate no data for that model at the selected hour.</div>
+    <a class="log-link" href="./log.txt" target="_blank" rel="noreferrer">View log</a>
+  </div>
 
   <script>
     // Groups payload is injected by FastAPI/Jinja.
     const groups = {{ groups_json|safe }};
+    const isFileProtocol = window.location.protocol === "file:";
 
     const groupsEl = document.getElementById("groups");
 
@@ -226,6 +293,49 @@
       const dd = date.getUTCDate().toString().padStart(2, "0");
       const hh = date.getUTCHours().toString().padStart(2, "0");
       return `${yyyy}${mm}${dd}${hh}`;
+    }
+
+    function toSrc(raw) {
+      if (!raw) return null;
+      return /^https?:\/\//i.test(raw) ? raw : `./${raw}`;
+    }
+
+    const blobCache = new Map();
+    const inflightCache = new Map();
+
+    function cachedSrc(src) {
+      if (!src) return Promise.resolve(null);
+
+      // When opened via file://, browsers block fetch() due to CORS. In that case, fall back to using the
+      // raw path directly so <img> can load the local file without fetch.
+      if (isFileProtocol) {
+        blobCache.set(src, src);
+        return Promise.resolve(src);
+      }
+
+      const cached = blobCache.get(src);
+      if (cached) return Promise.resolve(cached);
+
+      const inflight = inflightCache.get(src);
+      if (inflight) return inflight;
+
+      const p = fetch(src, { cache: "force-cache" })
+        .then((resp) => {
+          if (!resp.ok) throw new Error(`Failed to fetch ${src}`);
+          return resp.blob();
+        })
+        .then((blob) => {
+          const url = URL.createObjectURL(blob);
+          blobCache.set(src, url);
+          return url;
+        })
+        .catch(() => null)
+        .finally(() => {
+          inflightCache.delete(src);
+        });
+
+      inflightCache.set(src, p);
+      return p;
     }
 
     function formatLocalLabelFromUtc(ts) {
@@ -315,7 +425,7 @@
       nameSpan.className = "name";
       nameSpan.textContent = model.name.toUpperCase();
       const runSpan = document.createElement("span");
-      runSpan.textContent = `run ${model.run}`;
+      runSpan.textContent = model.run;
       const actions = document.createElement("div");
       actions.className = "actions";
       actions.appendChild(runSpan);
@@ -476,33 +586,55 @@
           continue;
         }
         const table = lookup.get(img.dataset.modelId);
-        const src = table ? table.get(targetTs) : null;
+        const rawSrc = table ? table.get(targetTs) : null;
         const modelMin = model.min_timestamp;
         const modelMax = model.max_timestamp;
         const withinRange = Boolean(
           targetTs && modelMin && modelMax && targetTs >= modelMin && targetTs <= modelMax,
         );
 
-        if (src) {
-          preloadAndSwap(img, noData, src);
-          img.style.opacity = "1";
-          noData.classList.add("hidden");
-        } else if (withinRange) {
-          img.dataset.pending = "";
-          if (img.dataset.lastGood) {
-            noData.classList.add("hidden");
-            img.classList.remove("no-src");
+        img.dataset.requestTs = targetTs;
+
+        cachedSrc(toSrc(rawSrc)).then((resolvedSrc) => {
+          if (img.dataset.requestTs !== targetTs) return; // stale async reply
+
+          if (resolvedSrc) {
+            preloadAndSwap(img, noData, resolvedSrc);
             img.style.opacity = "1";
+            noData.classList.add("hidden");
+          } else if (withinRange) {
+            img.dataset.pending = "";
+            if (img.dataset.lastGood) {
+              noData.classList.add("hidden");
+              img.classList.remove("no-src");
+              img.style.opacity = "1";
+            }
+          } else {
+            img.dataset.pending = "";
+            img.dataset.lastGood = "";
+            img.classList.add("no-src");
+            img.src = placeholder;
+            noData.classList.remove("hidden");
+            img.style.opacity = "0";
           }
-        } else {
-          img.dataset.pending = "";
-          img.dataset.lastGood = "";
-          img.classList.add("no-src");
-          img.src = placeholder;
-          noData.classList.remove("hidden");
-          img.style.opacity = "0";
+        });
+      }
+    }
+
+    function preloadAllImages(groups) {
+      const urls = new Set();
+      for (const group of groups) {
+        for (const model of group.models || []) {
+          for (const frame of model.frames || []) {
+            const src = toSrc(frame.url);
+            if (src) urls.add(src);
+          }
         }
       }
+
+      urls.forEach((src) => {
+        cachedSrc(src).catch(() => {});
+      });
     }
 
     function init() {
@@ -521,6 +653,16 @@
           }
           updateGroup(ctx, targetTs, lookup);
         });
+      }
+
+      const isMobile = window.matchMedia && window.matchMedia("(max-width: 720px)").matches;
+      if (!isMobile) {
+        const startPreload = () => preloadAllImages(groups);
+        if (typeof requestIdleCallback === "function") {
+          requestIdleCallback(startPreload, { timeout: 2000 });
+        } else {
+          setTimeout(startPreload, 300);
+        }
       }
     }
 
