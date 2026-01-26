@@ -567,13 +567,14 @@ def build_data_inventory(data_root: Path) -> Dict[str, object]:
     return inventory
 
 
-def render_viewer_html(groups_payload: List[Dict[str, object]], synopsis_text: str, output_path: Path) -> Path:
+def render_viewer_html(groups_payload: List[Dict[str, object]], synopsis: Dict[str, str], output_path: Path) -> Path:
     if not VIEWER_TEMPLATE.exists():
         raise FileNotFoundError(f"Template not found: {VIEWER_TEMPLATE}")
 
     template = VIEWER_TEMPLATE.read_text(encoding="utf-8")
     rendered = template.replace("{{ groups_json|safe }}", json.dumps(groups_payload))
-    rendered = rendered.replace("{{ synopsis_text|safe }}", synopsis_text)
+    rendered = rendered.replace("{{ synopsis_text_zh|safe }}", synopsis.get("zh", "NO Chinese Data"))
+    rendered = rendered.replace("{{ synopsis_text_en|safe }}", synopsis.get("en", "NO DATA"))
     output_path.write_text(rendered, encoding="utf-8")
     return output_path
 
@@ -637,7 +638,9 @@ Once the task is complete, summarize the analysis in the `summary` field of the 
 
 Your analysis must adhere to the following rules:
 
-- Output language must be Chinese. English words are allowed when necessary.
+- Produce TWO output versions: one in English and one in Chinese.
+- Both versions must be filled into the format defined in OUTPUT DEFINITION.
+- In the Chinese version, English technical terms may be used when necessary.
 - Format the final output as HTML fragments suitable for direct embedding into an existing HTML document.
   Do NOT include document-level tags such as <html>, <head>, <body>, or <doctype>.
 - Include a "TL; DR" section at the top, written for readers without a meteorology background, followed by a more detailed explanation.
@@ -700,7 +703,10 @@ The response format is strictly defined as:
 {{
   "status_code": "NO_EVENT | DRY_POW | WARM_STORM",
   "need": ["data/<model>/<run_time>/<product>/<filename>", ...],
-  "summary": "<final textual analysis>"
+  "summary": {{
+    "en": "analysis result in English...",
+    "zh": "analysis result in Chinese..."
+  }}
 }}
 
 Rules:
@@ -714,6 +720,8 @@ Rules:
    - Paths MUST follow the rule mentioned above.
 
 3. Use "summary" ONLY when the analysis is complete and no further images are required.
+   - summary.en must contain the analysis result in English.
+   - summary.zh must contain the analysis result in Chinese.
 
 4. The "status_code" MUST be chosen based on the final interpretation:
    - "NO_EVENT": no meaningful snowfall or ski-relevant event expected.
@@ -863,17 +871,18 @@ def run_once(args: argparse.Namespace) -> None:
         workers=args.workers,
         overwrite=False,
     )
-    gpt = ChatGPTSession("gpt-5.2", data_root=data_root)
-    summary = "MOCK DATA..."
+    summary = {}
     if not args.no_gpt:
+        gpt = ChatGPTSession("gpt-5.2", data_root=data_root)
         response = gpt.send(build_forecast_init_input(fetch_rwdi_forecast()))
-        summary = response.get("summary", "")
+        summary = response.get("summary", {})
         while not summary:
             log(response)
             needs = response["need"]
             abs_images = [args.out / Path(p) for p in needs]
             response = gpt.send("Here are the requested images:\n{}".format("\n".join(needs)), abs_images)
-            summary = response.get("summary", "")
+            summary = response.get("summary", {})
+            log(f"Used tokens: f{gpt.token_used}")
 
     index_path = args.out / "index.html"
     render_viewer_html(build_groups_payload(data_root), summary, index_path)

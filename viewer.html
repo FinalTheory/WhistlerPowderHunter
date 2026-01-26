@@ -3,7 +3,7 @@
 <head>
   <meta charset="UTF-8" />
   <meta name="viewport" content="width=device-width, initial-scale=1.0" />
-  <title>Model Divergence Viewer</title>
+  <title>Whistler Powder Hunter</title>
   <style>
     :root {
       --bg: #0f172a;
@@ -52,12 +52,21 @@
       letter-spacing: 0.04em;
       color: var(--text);
     }
+    .synopsis-header {
+      display: flex;
+      justify-content: space-between;
+      align-items: center;
+      gap: 10px;
+    }
     .synopsis-body {
       color: var(--muted);
       font-size: 14px;
       line-height: 1.5;
       white-space: pre-wrap;
     }
+    .lang-block { display: none; }
+    .lang-block.active { display: block; }
+    .lang-toggle { margin-left: auto; }
     .controls {
       background: var(--card);
       border: 1px solid var(--border);
@@ -257,8 +266,12 @@
     <div class="title">Whistler Powder Hunter</div>
   </header>
   <section class="synopsis">
-    <div class="synopsis-title">Synopsis</div>
-    <div class="synopsis-body" id="synopsis">{{ synopsis_text|safe }}</div>
+    <div class="synopsis-header">
+      <div class="synopsis-title">Synopsis</div>
+      <button class="ghost-btn lang-toggle" type="button" aria-label="Toggle language">EN / 中文</button>
+    </div>
+    <div class="synopsis-body lang-block" data-lang="en" id="synopsis-en">{{ synopsis_text_en|safe }}</div>
+    <div class="synopsis-body lang-block" data-lang="zh" id="synopsis-zh">{{ synopsis_text_zh|safe }}</div>
   </section>
   <div class="groups" id="groups"></div>
 
@@ -664,6 +677,35 @@
           setTimeout(startPreload, 300);
         }
       }
+
+      // Language toggle logic
+      const langBlocks = document.querySelectorAll(".lang-block");
+      const langToggle = document.querySelector(".lang-toggle");
+
+      const preferredLang = () => {
+        const nav = (navigator.language || navigator.userLanguage || "").toLowerCase();
+        return nav.startsWith("zh") ? "zh" : "en";
+      };
+
+      const setLang = (lang) => {
+        langBlocks.forEach((el) => {
+          if (el.dataset.lang === lang) {
+            el.classList.add("active");
+          } else {
+            el.classList.remove("active");
+          }
+        });
+        langToggle.textContent = lang === "zh" ? "English" : "显示中文";
+      };
+
+      const initialLang = preferredLang();
+      setLang(initialLang);
+
+      langToggle.addEventListener("click", () => {
+        const current = document.querySelector(".lang-block.active");
+        const next = current && current.dataset.lang === "zh" ? "en" : "zh";
+        setLang(next);
+      });
     }
 
     init();
