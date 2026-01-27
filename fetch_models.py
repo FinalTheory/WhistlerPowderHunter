@@ -17,6 +17,7 @@ import re
 import time
 from abc import ABC, abstractmethod
 from datetime import datetime, timedelta, timezone
+from zoneinfo import ZoneInfo
 from pathlib import Path
 from typing import Dict, Iterable, List, Optional, Tuple, NamedTuple
 import requests
@@ -33,13 +34,16 @@ DEFAULT_HEADERS = {
 BASE_DIR = Path(__file__).parent.resolve()
 VIEWER_TEMPLATE = BASE_DIR / "viewer.html"
 LOG_PATH = BASE_DIR / "log.txt"
+PROMPT_PATH = BASE_DIR / "prompt.txt"
 FRAME_TS_RE = re.compile(r"(\d{10})")
 WHISTLER_REGIONAL_LOCATION = (608.1, 628.6)
 WHISTLER_GLOBAL_LOCATION = (437, 374)
 WHISTLER_AC_LOCATION = (907, 477)
 PRODUCT_META = {
     "500h_anom.na": "500mb height abnormality of North America",
+    "700wh.ca_w": "700mb Height Wind Speed (kt) of West Canada",
     "prateptype-met.ca_w": "Precipitation Type, 6-h Avg Rate (mm/hr), 1000-500mb thickness (dam) of West Canada",
+    "nam.ref1km_ptype.ca_w": "1km AGL Reflectivity(dBZ), Type, 1000-500mb thickness (dam) of West Canada",
     "AC_GDPS_EPA_clds-th-500hts": "Avalanche Canada forecast graphic (PNW area) combining 6-hour precipitation, atmospheric thickness (1000–500 mb as a snow-line proxy), and geopotential height contours to diagnose storm structure and large-scale trends rather than precise snowfall amounts."
 }
 
@@ -79,6 +83,15 @@ class ModelConfig(ABC):
         self.hide = hide
         self.annotate = annotate
 
+    @property
+    def id(self) -> str:
+        return f"{self.name}.{self.product}"
+
+    @property
+    def product_dir(self) -> str:
+        """Directory name that holds this model's imagery."""
+        return self.product
+
     @abstractmethod
     def list_forecast_images(self, session: Optional[requests.Session] = None):
         """Return a download plan or None if unavailable."""
@@ -105,15 +118,37 @@ class PivotalWeatherModel(ModelConfig):
         self.region = region
         self.run_selector = run_selector or self.longest_run
 
+    @property
+    def id(self) -> str:
+        return f"{self.name}.{self.product}.{self.region}"
+
+    @property
+    def product_dir(self) -> str:
+        return f"{self.product}.{self.region}"
+
+    @staticmethod
+    def proxy_available() -> bool:
+        try:
+            from urllib3.contrib.socks import SOCKSProxyManager
+            return True
+        except ImportError:
+            return False
+
     @staticmethod
     def fetch_runs_beta(name: str, product: str, region: str, session: Optional[requests.Session] = None) -> List[Dict]:
         """Fetch run manifests from the beta API for a given model/product/region."""
         sess = session or requests.Session()
         url = f"{PivotalWeatherModel.BETA_BASE}/models/{name}/{product}/{region}/runs"
-        try:
-            resp = sess.get(url, headers=DEFAULT_HEADERS, timeout=10, proxies=PROXY)
-        except:
-            resp = sess.get(url, headers=DEFAULT_HEADERS, timeout=10)
+        proxies = PROXY if PivotalWeatherModel.proxy_available() else None
+        for attempt in range(3):
+            try:
+                resp = sess.get(url, headers=DEFAULT_HEADERS, timeout=10, proxies=proxies)
+                break
+            except Exception as exc:
+                if attempt < 2:
+                    time.sleep(2)
+                    continue
+                raise
         resp.raise_for_status()
         payload = resp.json()
         if payload.get("error"):
@@ -298,6 +333,14 @@ MODEL_GROUPS: List[ModelGroup] = [
         ],
     ),
     ModelGroup(
+        name="Wind Speed",
+        models=[
+            PivotalWeatherModel(name="gfs", product="700wh", region="ca_w", annotate=WHISTLER_REGIONAL_LOCATION),
+            PivotalWeatherModel(name="rdps", product="700wh", region="ca_w", annotate=WHISTLER_REGIONAL_LOCATION),
+            PivotalWeatherModel(name="hrdps", product="700wh", region="ca_w", annotate=WHISTLER_REGIONAL_LOCATION),
+        ],
+    ),
+    ModelGroup(
         name="Global Trending",
         models=[
             PivotalWeatherModel(name="cfs", product="500h_anom", region="na", annotate=WHISTLER_GLOBAL_LOCATION),
@@ -388,11 +431,11 @@ def download_all_models(
     """Fetch run manifests per model (beta API), pick latest, and download imagery."""
     output: Dict[str, List[Path]] = {}
     with requests.Session() as session:
-        model_by_name = {m.name: m for m in models}
-        plan_map = {m.name: m.list_forecast_images(session=session) for m in models}
+        model_by_id = {m.id: m for m in models}
+        plan_map = {m.id: m.list_forecast_images(session=session) for m in models}
 
     for model_name, plan in plan_map.items():
-        model_cfg = model_by_name[model_name]
+        model_cfg = model_by_id[model_name]
         if not plan:
             log(f"No runs available for {model_name}")
             continue
@@ -444,14 +487,16 @@ def parse_args() -> argparse.Namespace:
     return parser.parse_args()
 
 
-def _latest_run_dir(data_root: Path, model_name: str) -> Optional[Path]:
+def _latest_run_dir(data_root: Path, model_name: str, product_dir: str) -> Optional[Path]:
     model_dir = data_root / model_name
     if not model_dir.exists():
         return None
 
     def _run_has_images(run_dir: Path) -> bool:
-        for product_dir in (p for p in run_dir.iterdir() if p.is_dir()):
-            for file in product_dir.iterdir():
+        for product_subdir in (p for p in run_dir.iterdir() if p.is_dir()):
+            if product_subdir.name != product_dir:
+                continue
+            for file in product_subdir.iterdir():
                 if file.is_file() and file.suffix.lower() in {".png", ".jpg", ".jpeg"}:
                     return True
         return False
@@ -463,10 +508,12 @@ def _latest_run_dir(data_root: Path, model_name: str) -> Optional[Path]:
     return None
 
 
-def _frames_in_run(run_dir: Path, data_root: Path) -> List[Dict[str, object]]:
+def _frames_in_run(run_dir: Path, data_root: Path, product_dir: str) -> List[Dict[str, object]]:
     frames: List[Dict[str, object]] = []
-    for product_dir in sorted(p for p in run_dir.iterdir() if p.is_dir()):
-        for file in sorted(product_dir.iterdir()):
+    for product_subdir in sorted(p for p in run_dir.iterdir() if p.is_dir()):
+        if product_subdir.name != product_dir:
+            continue
+        for file in sorted(product_subdir.iterdir()):
             if not file.is_file():
                 continue
 
@@ -485,17 +532,18 @@ def _frames_in_run(run_dir: Path, data_root: Path) -> List[Dict[str, object]]:
 
 
 def build_model_payload(model: ModelConfig, data_root: Path) -> Optional[Dict[str, object]]:
-    run_dir = _latest_run_dir(data_root, model.name)
+    product_dir = model.product_dir
+    run_dir = _latest_run_dir(data_root, model.name, product_dir)
     if not run_dir:
         return None
     run_name = run_dir.name
-    frames = _frames_in_run(run_dir, data_root)
+    frames = _frames_in_run(run_dir, data_root, product_dir)
     if not frames:
         return None
     min_ts = min(f.get("timestamp", "") for f in frames)
     max_ts = max(f.get("timestamp", "") for f in frames)
     return {
-        "id": f"{model.name}_{model.product}",
+        "id": model.id,
         "name": model.name,
         "run": run_name,
         "frames": frames,
@@ -548,7 +596,7 @@ def build_groups_payload(data_root: Path) -> List[Dict[str, object]]:
 def build_data_inventory(data_root: Path) -> Dict[str, object]:
     inventory: Dict[str, Dict[str, Dict[str, List[str]]]] = {}
     for model in MODELS:
-        run_dir = _latest_run_dir(data_root, model.name)
+        run_dir = _latest_run_dir(data_root, model.name, model.product_dir)
         if not run_dir:
             continue
 
@@ -567,7 +615,12 @@ def build_data_inventory(data_root: Path) -> Dict[str, object]:
     return inventory
 
 
-def render_viewer_html(groups_payload: List[Dict[str, object]], synopsis: Dict[str, str], output_path: Path) -> Path:
+def format_generated_at_pst() -> str:
+    now_pst = datetime.now(timezone.utc).astimezone(ZoneInfo("America/Vancouver"))
+    return now_pst.strftime("%Y-%m-%d %H:%M %Z")
+
+
+def render_viewer_html(groups_payload: List[Dict[str, object]], synopsis: Dict[str, str], generated_at: str, output_path: Path) -> Path:
     if not VIEWER_TEMPLATE.exists():
         raise FileNotFoundError(f"Template not found: {VIEWER_TEMPLATE}")
 
@@ -575,6 +628,7 @@ def render_viewer_html(groups_payload: List[Dict[str, object]], synopsis: Dict[s
     rendered = template.replace("{{ groups_json|safe }}", json.dumps(groups_payload))
     rendered = rendered.replace("{{ synopsis_text_zh|safe }}", synopsis.get("zh", "NO Chinese Data"))
     rendered = rendered.replace("{{ synopsis_text_en|safe }}", synopsis.get("en", "NO DATA"))
+    rendered = rendered.replace("{{ generated_at|safe }}", generated_at)
     output_path.write_text(rendered, encoding="utf-8")
     return output_path
 
@@ -630,159 +684,8 @@ def fetch_rwdi_forecast(url: str = "https://www.whistlerpeak.com/forecast/block-
 
 
 def build_forecast_prompt(model_data):
-    return f"""
-You are a meteorology-focused decision engine for ski conditions in the Whistler region (PNW coastal mountains).
-
-Given the available input information, you must execute the forecast-related task specified in the `TASK DEFINITION` section below.
-Once the task is complete, summarize the analysis in the `summary` field of the output JSON, following the schema defined in the `OUTPUT DEFINITION` section.
-
-Your analysis must adhere to the following rules:
-
-- Produce TWO output versions: one in English and one in Chinese.
-- Both versions must be filled into the format defined in OUTPUT DEFINITION.
-- In the Chinese version, English technical terms may be used when necessary.
-- Format the final output as HTML fragments suitable for direct embedding into an existing HTML document.
-  Do NOT include document-level tags such as <html>, <head>, <body>, or <doctype>.
-- Include a "TL; DR" section at the top, written for readers without a meteorology background, followed by a more detailed explanation.
-- Use ONLY the provided inputs (forecast images and associated metadata).
-  If required information is missing, request the minimum additional set of images necessary to proceed.
-- The output MUST be valid JSON matching the schema provided by the user.
-  Do NOT include any extra text outside the JSON object.
-- Focus on trends and decision-relevant signals, including:
-  - Detection of precipitation events,
-  - Snowline / freezing level trends,
-  - Wind impacts and alpine lift operation risk,
-  - Timing and distribution of the strongest snowfall.
-- Do NOT provide avalanche safety advice.
-  You may note that upside-down snow or wind loading can increase in-bound avalanche risk, but do not offer backcountry travel recommendations.
-- Keep uncertainty explicit.
-  Provide an overall confidence level using LOW, MED, or HIGH.
-- When uncertainty is high, request the smallest additional set of images required to reduce uncertainty.
-- At any step, if requested images are insufficient to reach a final decision, you may request further images.
-- The location of the Whistler area is marked on ALL forecast images with a red dot; use this marker for spatial reference.
-
-======
-
-DATASET DEFINITION
-
-The JSON data below defines the available forecast model image data.
-It is a three-level nested dictionary, where the keys represent, in order:
-model → run_time → product → [filename, ...].
-
-Each filename corresponds to the valid forecast time in UTC.
-
-When requesting a specific image file, construct the file path using the following rule:
-
-`data/<model>/<run_time>/<product>/<filename>`
-
-where data is the root data directory prefix.
-
-{model_data}
-
-A separate product dictionary is provided to describe the physical meaning and interpretation of each product.
-Use this information to correctly interpret the images and to decide which images are required for further analysis.
-
-{PRODUCT_META}
-
-Do not assume the content of any image unless it is explicitly requested and provided.
-Use the JSON index to determine which models, runs, products, and valid times are available.
-When additional images are required, explicitly request them by constructing the file path and return them in response.
-
-======
-
-OUTPUT DEFINITION
-
-You are an analysis component in a weather-forecast workflow.
-
-You MUST output ONLY ONE single valid JSON object.
-Do NOT include explanations, markdown, or extra text.
-The output MUST start with '{' and end with '}'.
-
-The response format is strictly defined as:
-
-{{
-  "status_code": "NO_EVENT | DRY_POW | WARM_STORM",
-  "need": ["data/<model>/<run_time>/<product>/<filename>", ...],
-  "summary": {{
-    "en": "analysis result in English...",
-    "zh": "analysis result in Chinese..."
-  }}
-}}
-
-Rules:
-
-1. Exactly ONE of "need" or "summary" MUST be present.
-   - If "summary" is present, "need" MUST be omitted.
-   - If "need" is present and non-empty, "summary" MUST be omitted.
-
-2. Use "need" ONLY when additional image data is required to continue the analysis.
-   - Each entry in "need" MUST be a valid image path string.
-   - Paths MUST follow the rule mentioned above.
-
-3. Use "summary" ONLY when the analysis is complete and no further images are required.
-   - summary.en must contain the analysis result in English.
-   - summary.zh must contain the analysis result in Chinese.
-
-4. The "status_code" MUST be chosen based on the final interpretation:
-   - "NO_EVENT": no meaningful snowfall or ski-relevant event expected.
-   - "DRY_POW": cold storm or snowfall likely to produce dry, skiable powder.
-   - "WARM_STORM": warm system, high snow line, rain, or snow-quality degradation likely.
-
-5. Do NOT assume the content of any image unless it has been explicitly requested and provided.
-
-======
-
-TASK DEFINITION
-
-------
-
-Task: NO_SNOW
-
-Condition:
-This task is triggered only when there is high confidence that no meaningful snowfall or snow-producing precipitation is expected in the short term (e.g., next 3-7 days).
-
-Inputs:
-Large-scale circulation diagnostics, primarily 500mb height and 500mb height anomaly sequences from multiple global and regional models (e.g., ECMWF, ECMWF-AIFS, GFS, ICON, GDPS, CFS), focused on the PNW / Whistler region.
-
-Goal:
-Assess whether the current synoptic-scale background favors a snow-free regime and whether that regime is likely to persist.
-Specifically:
-- Classify the current background state as RIDGE, TROUGH, or TRANSITION.
-- Evaluate background pattern stability over the next 7–14 days.
-- Identify whether there are credible signals of a pattern change.
-- Estimate a model agreement score in the levels of LOW - MED - HIGH.
-
-Heuristics:
-- Use 500mb height anomalies as the primary diagnostic for background state and trend.
-- Persistent positive height anomalies over the PNW indicate a RIDGE; persistent negative anomalies indicate a TROUGH.
-- Weakening anomalies, displacement, or sign changes indicate a TRANSITION.
-- For the 7–14 day window:
-  - STABLE: anomaly pattern remains coherent with little positional or amplitude change.
-  - UNSTABLE: increasing spread, weakening, or loss of coherence.
-  - SHIFTING: systematic displacement, erosion, or sign reversal.
-- Look for pattern change signals, including:
-  - Sustained height falls or anomaly weakening over the PNW.
-  - Upstream trough progression capable of eroding an existing ridge.
-  - Breakdown of blocking structures in extended-range guidance.
-- Model agreement should account for:
-  - Consistency of anomaly sign and placement across models.
-  - Consistency of trend direction through time.
-  - The number of models available at a given valid time.
-- IMPORTANT: Models have different maximum forecast horizons.
-  - Prefer valid times with the greatest multi-model overlap.
-  - Do not penalize shorter-range models; instead reduce confidence when fewer models are available at longer lead times.
-- If lead time exceeds ~7 days, cap confidence unless multiple independent models show consistent evolution.
-
-Interpretation guidance:
-This task is diagnostic and trend-focused.
-Prioritize large-scale structure, persistence, and evolution over precise timing.
-Use very long-range models only to support or weaken confidence in pattern persistence, not as deterministic triggers.
-
-Return intent:
-Determine whether the background supports a NO_SNOW regime and summarize pattern state, stability, pattern-change likelihood, and model agreement.
-If uncertainty is dominated by missing key time slices or missing model perspectives, indicate which additional large-scale fields would most reduce uncertainty.
-
-"""
+    with PROMPT_PATH.open("r", encoding="utf-8") as p:
+        return p.read().replace("{{MODEL_DATA}}", str(model_data)).replace("{{PRODUCT_META}}", str(PRODUCT_META))
 
 
 def build_forecast_init_input(rwdi_forecast):
@@ -872,21 +775,30 @@ def run_once(args: argparse.Namespace) -> None:
         overwrite=False,
     )
     summary = {}
+    sleep = "1DAY"
     if not args.no_gpt:
         gpt = ChatGPTSession("gpt-5.2", data_root=data_root)
         response = gpt.send(build_forecast_init_input(fetch_rwdi_forecast()))
-        summary = response.get("summary", {})
+        summary = response.get("summary", summary)
+        sleep = response.get("sleep", sleep)
         while not summary:
             log(response)
             needs = response["need"]
             abs_images = [args.out / Path(p) for p in needs]
             response = gpt.send("Here are the requested images:\n{}".format("\n".join(needs)), abs_images)
-            summary = response.get("summary", {})
-            log(f"Used tokens: f{gpt.token_used}")
+            summary = response.get("summary", summary)
+            sleep = response.get("sleep", sleep)
+        log(f"Used tokens: {gpt.token_used}")
 
     index_path = args.out / "index.html"
-    render_viewer_html(build_groups_payload(data_root), summary, index_path)
+    render_viewer_html(build_groups_payload(data_root), summary, format_generated_at_pst(), index_path)
     log(f"Rendered to {index_path}")
+    log(f"Next report after {sleep}")
+    return {
+        "1DAY": 24 * 3600,
+        "3HR": 3 * 3600,
+        "12HR": 12 * 3600,
+    }[sleep]
 
 
 def main() -> None:
@@ -897,12 +809,13 @@ def main() -> None:
 
     while True:
         try:
-            run_once(args)
+            sleep = run_once(args)
         except Exception as e:
             err = traceback.format_exc()
             log(err)
-        log("Now sleep...")
-        time.sleep(24 * 3600)
+            sleep = 3600
+        log(f"Now sleep for {sleep}s")
+        time.sleep(sleep)
 
 
 if __name__ == "__main__":

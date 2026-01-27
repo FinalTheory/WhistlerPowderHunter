@@ -38,6 +38,10 @@
       font-weight: 800;
       letter-spacing: 0.04em;
     }
+    .generated-at {
+      color: var(--muted);
+      font-size: 12px;
+    }
     .synopsis {
       background: var(--card);
       border: 1px solid var(--border);
@@ -264,6 +268,7 @@
 <body>
   <header>
     <div class="title">Whistler Powder Hunter</div>
+    <div class="generated-at">Report generated at {{ generated_at|safe }}</div>
   </header>
   <section class="synopsis">
     <div class="synopsis-header">
