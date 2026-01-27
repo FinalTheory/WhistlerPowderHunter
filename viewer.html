@@ -65,8 +65,24 @@
     .synopsis-body {
       color: var(--muted);
       font-size: 14px;
-      line-height: 1.5;
-      white-space: pre-wrap;
+      line-height: 1.6;
+      white-space: normal;
+    }
+    .synopsis-body h3,
+    .synopsis-body h4 {
+      color: var(--text);
+      margin: 10px 0 6px;
+      line-height: 1.4;
+    }
+    .synopsis-body h3 { font-size: 16px; font-weight: 700; }
+    .synopsis-body h4 { font-size: 14px; font-weight: 700; }
+    .synopsis-body p { margin: 8px 0; }
+    .synopsis-body ul,
+    .synopsis-body ol {
+      padding-left: 18px;
+      margin: 6px 0 10px;
+    }
+    .synopsis-body li { margin: 4px 0; }
     }
     .lang-block { display: none; }
     .lang-block.active { display: block; }
