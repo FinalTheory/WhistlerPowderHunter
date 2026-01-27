@@ -23,6 +23,7 @@ from typing import Dict, Iterable, List, Optional, Tuple, NamedTuple
 import requests
 from PIL import Image, ImageDraw
 from openai import OpenAI
+import concurrent.futures
 
 DEFAULT_HEADERS = {
     "user-agent": (
@@ -648,6 +649,41 @@ def prune_old_runs(root: Path, days: int = 2) -> None:
                 shutil.rmtree(run_dir, ignore_errors=True)
 
 
+def fetch_sensor_data():
+    LOCATIONS = ['horstman', 'peak', 'symphony', 'harmony', 'roundhouse', 'rendezvous', 'crystal']
+    SENSOR_URLS = [f'https://whistlerpeak.com/temps/plot-{loc}.json' for loc in LOCATIONS]
+
+    def fetch_one(url):
+        resp = requests.get(url, timeout=10)
+        resp.raise_for_status()
+        return resp.json()
+
+    def transform(data):
+        result = []
+        cnt = len(data['date'])
+        date = data['date']
+        temp = data['temp']
+        winddir = data['winddir']
+        direction = data['direction']
+        maxwind = data['maxwind']
+        avgwind = data['avgwind']
+        for i in range(cnt):
+            result.append(f"{date[i]} Temperature={temp[i]}C Wind Direction={winddir[i]} ({direction[i]}degree), Max Wind={maxwind[i]}km/h Avg Wind={avgwind[i]}km/h")
+        return result
+    sensor_data = {}
+    with concurrent.futures.ThreadPoolExecutor(max_workers=7) as executor:
+        future_to_loc = {executor.submit(fetch_one, url): loc for url, loc in zip(SENSOR_URLS, LOCATIONS)}
+        for future in concurrent.futures.as_completed(future_to_loc):
+            loc = future_to_loc[future]
+            try:
+                data = future.result()
+                sensor_data[loc] = transform(data)
+            except Exception as exc:
+                log(f"Sensor fetch failed: {loc}: {exc}")
+
+    return sensor_data
+
+
 def fetch_rwdi_forecast(url: str = "https://www.whistlerpeak.com/forecast/block-alpine-grid.php") -> Optional[Dict[str, object]]:
     headers = dict(DEFAULT_HEADERS)
     headers["referer"] = "https://www.whistlerpeak.com/"
@@ -685,7 +721,7 @@ def fetch_rwdi_forecast(url: str = "https://www.whistlerpeak.com/forecast/block-
 
 def build_forecast_prompt(model_data):
     with PROMPT_PATH.open("r", encoding="utf-8") as p:
-        return p.read().replace("{{MODEL_DATA}}", str(model_data)).replace("{{PRODUCT_META}}", str(PRODUCT_META))
+        return p.read().replace("{{MODEL_DATA}}", str(model_data)).replace("{{PRODUCT_META}}", str(PRODUCT_META)).replace("{{SENSOR_DATA}}", str(fetch_sensor_data()))
 
 
 def build_forecast_init_input(rwdi_forecast):
@@ -717,14 +753,13 @@ class ChatGPTSession:
     def send(self, message: str, image_paths: Optional[List[Path]] = None, max_retries: int = 3) -> Dict[str, object]:
         images = image_paths or []
 
-        for img in images:
-            if not img.exists():
-                raise FileNotFoundError(f"Image not found: {img}")
-
         user_content = []
         user_content.append({"type": "text", "text": message})
 
         for img in images:
+            if not img.exists():
+                log(f"Image {img} not found, skip it.")
+                continue
             mime = "image/png"
             suffix = img.suffix.lower()
             if suffix in {".jpg", ".jpeg"}:

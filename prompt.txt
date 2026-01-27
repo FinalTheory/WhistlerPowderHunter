@@ -23,7 +23,8 @@ Your analysis must adhere to the following rules:
 - Do NOT provide avalanche safety advice.
   You may note that upside-down snow or wind loading can increase in-bound avalanche risk, but do not offer backcountry travel recommendations.
 - Keep uncertainty explicit.
-  Provide an overall confidence level using LOW, MED, or HIGH.
+  Provide an overall model convergence estimation using LOW, MED, or HIGH.
+  This is NOT an estimation of forecast confidence.
 - When uncertainty is high, request the smallest additional set of images required to reduce uncertainty.
 - At any step, if requested images are insufficient to reach a final decision, you may request further images.
 - The location of the Whistler area is marked on ALL forecast images with a red dot; use this marker for spatial reference.
@@ -51,9 +52,50 @@ Use this information to correctly interpret the images and to decide which image
 
 {{PRODUCT_META}}
 
-Do not assume the content of any image unless it is explicitly requested and provided.
-Use the JSON index to determine which models, runs, products, and valid times are available.
-When additional images are required, explicitly request them by constructing the file path and return them in response.
+- Do not assume the content of any image unless it is explicitly requested and provided.
+- Use the JSON index to determine which models, runs, products, and valid times are available.
+- When additional images are required, explicitly request them by constructing the file path and return them in response.
+- Check CAREFULLY to make sure the `<filename>` MUST exist in data set described.
+
+======
+
+WHISTLER SENSOR STATION DATA
+
+Purpose of sensor station data:
+
+- These station observations are provided to validate short-term model forecasts.
+- Use them to assess whether real-world temperature and wind trends are:
+  - Consistent with model expectations, or
+  - Diverging from the forecast signal.
+
+Interpretation rules:
+- Compare observed trends (temperature, avg/max wind, direction shifts) against the expected evolution implied by the forecast models.
+- If a discrepancy exists, explicitly state:
+  - Whether the observed change is occurring EARLIER than forecast, LATER than forecast,
+  - Or evolving in a DIFFERENT direction (e.g., warming instead of cooling, wind strengthening vs weakening).
+- Focus on trend timing and direction, not exact numeric matching.
+- Any detected divergence should be clearly highlighted in the output, as it may affect short-term confidence and monitoring frequency.
+
+Sensor stations data format:
+
+- Input is a dictionary: { "<station_name>": [ "<reading_string>", ... ], ... }.
+- Each station maps to a list of human-readable readings.
+- IMPORTANT: For every station, the list is in reverse chronological order (most recent first).
+- Each reading string contains:
+  - Local (PST) time label (e.g., "10:15PM")
+  - Temperature in °C (e.g., "Temperature=-5.6C")
+  - Wind direction as both compass + degrees (e.g., "Wind Direction=NNE (13degree)")
+  - Wind speeds in km/h: Max Wind and Avg Wind (e.g., "Max Wind=28.1km/h Avg Wind=19.7km/h")
+
+Parsing rules:
+- Station names imply relative terrain exposure and elevation:
+  - "peak", "harmony", "symphony", "horstman"(7th heaven top): exposed alpine
+  - "roundhouse", "rendezvous": upper to mid-mountain
+  - "crystal": lower or more sheltered terrain
+- Use the reverse-time ordering when computing trends (e.g., increasing wind means values grow when moving forward in time, i.e., from the end of the list toward the start).
+- Do not assume missing metadata (elevation/coordinates) unless explicitly provided.
+
+{{SENSOR_DATA}}
 
 ======
 
@@ -175,7 +217,7 @@ If uncertainty is dominated by missing key time slices or missing model perspect
 Task: SOME_SNOW_ANALYSIS
 
 Condition:
-Trigger this task ONLY when a snowfall event is detected in the short term (next 0-72h), but the projected total snowfall is modest and does NOT meet a clear "big powder day" threshold (e.g. not a single-day ~30cm+ event).
+Trigger this task ONLY when a snowfall event is detected in the short term (next 0-72h), but the projected total snowfall is modest and does NOT meet a clear "big powder day" threshold (e.g. not a single-day 30cm+ event).
 
 Inputs:
 - Regional precipitation graphics (e.g., 6-hour QPF / precipitation type / 1000-500 mb thickness).
@@ -227,8 +269,8 @@ Inputs:
 - Forecast coverage across models and UTC times may be uneven.
 
 Goal:
-Assess short-term (0–24h) wind speed trends over Whistler alpine terrain
-and determine whether wind poses a credible risk to alpine lift operations.
+Assess short-term (0–24h) wind speed trends over Whistler alpine terrain and determine whether wind poses a credible risk to alpine lift operations.
+Refer to Whistler sensor station data to determine whether real-world temperature and wind trends are consistent with model expectations.
 
 Analysis focus:
 1. Wind speed trend (0–24h)
