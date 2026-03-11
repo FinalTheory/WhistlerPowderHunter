@@ -35,7 +35,9 @@ DEFAULT_HEADERS = {
 BASE_DIR = Path(__file__).parent.resolve()
 VIEWER_TEMPLATE = BASE_DIR / "viewer.html"
 LOG_PATH = BASE_DIR / "log.txt"
-PROMPT_PATH = BASE_DIR / "prompt.txt"
+PROMPT_BASE_DIR = BASE_DIR / "prompt"
+INIT_PROMPT_PATH = PROMPT_BASE_DIR / "prompt_init.txt"
+TASK_PROMPT_PATH = PROMPT_BASE_DIR / "prompt_task.txt"
 FRAME_TS_RE = re.compile(r"(\d{10})")
 WHISTLER_REGIONAL_LOCATION = (608.1, 628.6)
 WHISTLER_GLOBAL_LOCATION = (437, 374)
@@ -52,7 +54,6 @@ PROXY = {
     "http":  "socks5h://127.0.0.1:1080",
     "https": "socks5h://127.0.0.1:1080",
 }
-
 
 def log(msg, stdout=True) -> None:
     """Log to console and append to log.txt with UTC timestamp."""
@@ -83,6 +84,7 @@ class ModelConfig(ABC):
         self.product = product
         self.hide = hide
         self.annotate = annotate
+        self._cached_plan: Optional[RunPlan] = None
 
     @property
     def id(self) -> str:
@@ -94,12 +96,63 @@ class ModelConfig(ABC):
         return self.product
 
     @abstractmethod
-    def list_forecast_images(self, session: Optional[requests.Session] = None):
+    def list_forecast_images(self):
         """Return a download plan or None if unavailable."""
 
     @abstractmethod
     def dest_path(self, output_dir: Path, run_hour: str, frame_time: str) -> Path:
         """Return destination path for a given frame."""
+
+    def select(
+        self,
+        data_root: Path,
+        start: datetime,
+        end: Optional[datetime] = None,
+    ) -> List[Path]:
+        """
+        Unified selection API:
+        - If end is provided: return all forecast image paths within [start, end] (inclusive).
+        - If end is None: return at most one path, the first whose valid time is >= start.
+        """
+        plan = self.list_forecast_images()
+        if not plan:
+            return []
+
+        start_utc = self._to_utc(start)
+        if end is None:
+            for frame_time, _, run_hour in plan.tasks:
+                valid_dt = datetime.strptime(frame_time, "%Y%m%d%H").replace(tzinfo=timezone.utc)
+                if valid_dt >= start_utc:
+                    return [self.dest_path(data_root, run_hour, frame_time)]
+            return []
+
+        end_utc = self._to_utc(end)
+        if start_utc > end_utc:
+            raise ValueError("start must be <= end")
+
+        selected: List[Path] = []
+        for frame_time, _, run_hour in plan.tasks:
+            valid_dt = datetime.strptime(frame_time, "%Y%m%d%H").replace(tzinfo=timezone.utc)
+            if start_utc <= valid_dt <= end_utc:
+                selected.append(self.dest_path(data_root, run_hour, frame_time))
+        return selected
+
+    @staticmethod
+    def _to_utc(dt: datetime) -> datetime:
+        """Convert naive/aware datetime to timezone-aware UTC."""
+        if dt.tzinfo is None:
+            local_tz = datetime.now().astimezone().tzinfo or timezone.utc
+            dt = dt.replace(tzinfo=local_tz)
+        return dt.astimezone(timezone.utc)
+
+    def get_cached_plan(self) -> Optional[RunPlan]:
+        return self._cached_plan
+
+    def set_cached_plan(self, plan: RunPlan) -> None:
+        self._cached_plan = plan
+
+    def clear_cached_plan(self) -> None:
+        self._cached_plan = None
 
 
 class PivotalWeatherModel(ModelConfig):
@@ -136,9 +189,9 @@ class PivotalWeatherModel(ModelConfig):
             return False
 
     @staticmethod
-    def fetch_runs_beta(name: str, product: str, region: str, session: Optional[requests.Session] = None) -> List[Dict]:
+    def fetch_runs_beta(name: str, product: str, region: str) -> List[Dict]:
         """Fetch run manifests from the beta API for a given model/product/region."""
-        sess = session or requests.Session()
+        sess = requests.Session()
         url = f"{PivotalWeatherModel.BETA_BASE}/models/{name}/{product}/{region}/runs"
         proxies = PROXY if PivotalWeatherModel.proxy_available() else None
         for attempt in range(3):
@@ -223,8 +276,12 @@ class PivotalWeatherModel(ModelConfig):
         tasks.sort(key=lambda t: t[0])
         return tasks
 
-    def list_forecast_images(self, session: Optional[requests.Session] = None):
-        runs = self.fetch_runs_beta(self.name, self.product, self.region, session=session)
+    def list_forecast_images(self):
+        cached = self.get_cached_plan()
+        if cached is not None:
+            return cached
+
+        runs = self.fetch_runs_beta(self.name, self.product, self.region)
         run = self.run_selector(runs) if runs else None
         if not run:
             return None
@@ -233,12 +290,14 @@ class PivotalWeatherModel(ModelConfig):
         forecasts = run.get("forecasts", {}) or {}
         max_fh = max((int(k) for k, v in forecasts.items() if isinstance(v, dict) and v.get("available")), default=0)
         tasks = list(self._iter_forecast_tasks(run))
-        return RunPlan(
+        plan = RunPlan(
             run_hour=run_hour,
             tasks=tasks,
             product=f"{self.product}.{self.region}",
             max_forecast_hour=max_fh,
         )
+        self.set_cached_plan(plan)
+        return plan
 
     def dest_path(self, output_dir: Path, run_hour: str, frame_time: str) -> Path:
         product_dir = f"{self.product}.{self.region}"
@@ -280,8 +339,12 @@ class AvalancheCanadaModel(ModelConfig):
             tasks.append((frame_time, url, run_str))
         return tasks
 
-    def list_forecast_images(self, session: Optional[requests.Session] = None):
-        sess = session or requests.Session()
+    def list_forecast_images(self):
+        cached = self.get_cached_plan()
+        if cached is not None:
+            return cached
+
+        sess = requests.Session()
 
         def _run_available(run_dt: datetime) -> bool:
             tasks = self._iter_tasks(run_dt)
@@ -303,12 +366,14 @@ class AvalancheCanadaModel(ModelConfig):
 
         run_hour = run_dt.strftime("%Y%m%d%H")
         tasks = self._iter_tasks(run_dt)
-        return RunPlan(
+        plan = RunPlan(
             run_hour=run_hour,
             tasks=tasks,
             product=self.product,
             max_forecast_hour=self.max_forecast_hour,
         )
+        self.set_cached_plan(plan)
+        return plan
 
     def dest_path(self, output_dir: Path, run_hour: str, frame_time: str) -> Path:
         product_dir = self.product
@@ -322,6 +387,27 @@ class ModelGroup:
         self.name = name
         self.models = models
 
+    def __getitem__(self, index):
+        return self.models[index]
+
+    def __len__(self) -> int:
+        return len(self.models)
+
+    def __iter__(self):
+        return iter(self.models)
+
+    def select(
+        self,
+        data_root: Path,
+        start: datetime,
+        end: Optional[datetime] = None,
+    ) -> List[Path]:
+        selected: List[Path] = []
+        for model in self.models:
+            if not model.hide:
+                selected.extend(model.select(data_root, start, end))
+        return selected
+
 
 MODEL_GROUPS: List[ModelGroup] = [
     ModelGroup(
@@ -329,8 +415,8 @@ MODEL_GROUPS: List[ModelGroup] = [
         models=[
             AvalancheCanadaModel(name="ac_gdps", product="AC_GDPS_EPA_clds-th-500hts", max_forecast_hour=144, step_hours=6, annotate=WHISTLER_AC_LOCATION),
             PivotalWeatherModel(name="rdps", product="prateptype-met", region="ca_w", annotate=WHISTLER_REGIONAL_LOCATION),
-            PivotalWeatherModel(name="nam", product="ref1km_ptype", region="ca_w", hide=True, annotate=WHISTLER_REGIONAL_LOCATION),
             PivotalWeatherModel(name="hrdps", product="prateptype-met", region="ca_w", annotate=WHISTLER_REGIONAL_LOCATION),
+            PivotalWeatherModel(name="nam", product="ref1km_ptype", region="ca_w", hide=True, annotate=WHISTLER_REGIONAL_LOCATION),
         ],
     ),
     ModelGroup(
@@ -358,11 +444,79 @@ MODEL_GROUPS: List[ModelGroup] = [
 # Flattened list for download pipeline compatibility.
 MODELS: List[ModelConfig] = [m for g in MODEL_GROUPS for m in g.models]
 
+def get_precip_images(data_root):
+    start = datetime.now(ZoneInfo("America/Vancouver"))
+    end = (start + timedelta(days=1)).replace(hour=15)
+    return MODEL_GROUPS[0][0].select(data_root, start, end) + MODEL_GROUPS[0][1].select(data_root, start, end) + MODEL_GROUPS[0][2].select(data_root, start, end)[::3]
+
+def get_wind_images(data_root):
+    start = datetime.now(ZoneInfo("America/Vancouver"))
+    end = (start + timedelta(days=1)).replace(hour=15)
+    return MODEL_GROUPS[1][0].select(data_root, start, end) + MODEL_GROUPS[1][1].select(data_root, start, end) + MODEL_GROUPS[1][2].select(data_root, start, end)[::3]
+
+TASK_DEFINITION = {
+    "PATTERN_TASK": lambda _: [],
+    "PRECIP_EVENT_TASK": get_precip_images,
+    "THERMAL_PHASE_TASK": lambda _: [],
+    "WIND_OPERATION_TASK": get_wind_images,
+}
+
+TASK_SELECTION_JSON_SCHEMA = {
+    "name": "task_scheduler_output",
+    "strict": True,
+    "schema": {
+        "type": "object",
+        "properties": {
+            "tasks": {
+                "type": "array",
+                "items": {
+                    "type": "string",
+                    "enum": list(TASK_DEFINITION.keys()),
+                },
+            },
+            "reason": {"type": "string"},
+            "debug": {"type": "string"},
+        },
+        "required": ["tasks", "reason", "debug"],
+        "additionalProperties": False,
+    },
+}
+
+TASK_OUTPUT_JSON_SCHEMA: Dict[str, object] = {
+    "name": "task_analysis_output",
+    "strict": True,
+    "schema": {
+        "type": "object",
+        "properties": {
+            "status_code": {
+                "type": "string",
+                "enum": ["NO_EVENT", "SOME_SNOW", "DRY_POW", "WARM_STORM"],
+            },
+            "need": {
+                "type": "array",
+                "items": {
+                    "type": "string",
+                },
+            },
+            "summary": {
+                "type": "object",
+                "properties": {
+                    "en": {"type": "string"},
+                    "zh": {"type": "string"},
+                },
+                "required": ["en", "zh"],
+                "additionalProperties": False,
+            },
+        },
+        "required": ["status_code", "need", "summary"],
+        "additionalProperties": False,
+    },
+}
+
 
 def download_image(
     url: str,
     dest: Path,
-    session: Optional[requests.Session] = None,
     overwrite: bool = False,
 ) -> bool:
     """Download a single image to dest. Returns True if saved, False otherwise."""
@@ -371,7 +525,7 @@ def download_image(
 
     dest.parent.mkdir(parents=True, exist_ok=True)
 
-    sess = session or requests.Session()
+    sess = requests.Session()
     resp = sess.get(url, headers=DEFAULT_HEADERS, timeout=20)
     if resp.status_code != 200:
         raise RuntimeError(f"Failed {resp.status_code} for {url}")
@@ -398,7 +552,7 @@ def download_model_run(
     output_dir: Path,
     workers: int = 8,
     overwrite: bool = False,
-    dot_radius: int = 8,
+    dot_radius: int = 5,
 ) -> List[Path]:
     """Download available forecast images for one run using the model's source implementation."""
     saved: List[Path] = []
@@ -431,9 +585,8 @@ def download_all_models(
 ) -> Dict[str, List[Path]]:
     """Fetch run manifests per model (beta API), pick latest, and download imagery."""
     output: Dict[str, List[Path]] = {}
-    with requests.Session() as session:
-        model_by_id = {m.id: m for m in models}
-        plan_map = {m.id: m.list_forecast_images(session=session) for m in models}
+    model_by_id = {m.id: m for m in models}
+    plan_map = {m.id: m.list_forecast_images() for m in models}
 
     for model_name, plan in plan_map.items():
         model_cfg = model_by_id[model_name]
@@ -719,8 +872,8 @@ def fetch_rwdi_forecast(url: str = "https://www.whistlerpeak.com/forecast/block-
     return {"synopsis": synopsis_text, "days": days}
 
 
-def build_forecast_prompt(model_data):
-    with PROMPT_PATH.open("r", encoding="utf-8") as p:
+def build_forecast_task_prompt(model_data):
+    with TASK_PROMPT_PATH.open("r", encoding="utf-8") as p:
         return p.read().replace("{{MODEL_DATA}}", str(model_data)).replace("{{PRODUCT_META}}", str(PRODUCT_META)).replace("{{SENSOR_DATA}}", str(fetch_sensor_data()))
 
 
@@ -732,8 +885,7 @@ Now, we can start with given RWDI forecast information:
 
 {rwdi_forecast}
 
-Here are forecast images from Avalanche Canada:
-
+Here are forecast images from Avalanche Canada.
 """
 
 
@@ -748,9 +900,11 @@ class ChatGPTSession:
         self.messages: List[Dict[str, object]] = []
         self.token_used = 0
         self.token_limit = 300000
-        self.messages.append({"role": "system", "content": build_forecast_prompt(build_data_inventory(data_root))})
 
-    def send(self, message: str, image_paths: Optional[List[Path]] = None, max_retries: int = 3) -> Dict[str, object]:
+    def append_prompt(self, prompt: str):
+        self.messages.append({"role": "system", "content": prompt})
+
+    def append(self, message: str, image_paths: Optional[List[Path]] = None) -> None:
         images = image_paths or []
 
         user_content = []
@@ -769,13 +923,27 @@ class ChatGPTSession:
 
         self.messages.append({"role": "user", "content": user_content})
 
+    def send(
+        self,
+        json_schema: Optional[Dict[str, object]] = None,
+        max_retries: int = 3,
+    ) -> Dict[str, object]:
         client = OpenAI(api_key=self.api_key)
         last_error = None
 
         for _ in range(max_retries):
             if self.token_used > self.token_limit:
                 raise RuntimeError(f"Token budget exceeded: used {self.token_used} > limit {self.token_limit}")
-            resp = client.chat.completions.create(model=self.model, messages=self.messages)
+            request_kwargs: Dict[str, object] = {
+                "model": self.model,
+                "messages": self.messages,
+            }
+            if json_schema is not None:
+                request_kwargs["response_format"] = {
+                    "type": "json_schema",
+                    "json_schema": json_schema,
+                }
+            resp = client.chat.completions.create(**request_kwargs)
             choices = resp.choices or []
             reply = choices[0].message.content if choices else None
             if reply is None:
@@ -800,8 +968,43 @@ class ChatGPTSession:
         return list(self.messages)
 
 
+def call_chatgpt_analysis(args: argparse.Namespace, data_root: Path) -> Dict[str, str]:
+    now = datetime.now()
+    model = MODEL_GROUPS[0][0]
+    init_images = model.select(data_root, now, now + timedelta(days=1))[:2] + model.select(data_root, now + timedelta(days=1)) + model.select(data_root, now + timedelta(days=2))
+    # print(init_images)
+    gpt = ChatGPTSession("gpt-5.2", data_root=data_root)
+    gpt.append_prompt(INIT_PROMPT_PATH.open("r", encoding="utf-8").read())
+    gpt.append(build_forecast_init_input(fetch_rwdi_forecast()), image_paths=init_images)
+    response = gpt.send(json_schema=TASK_SELECTION_JSON_SCHEMA)
+    tasks = response.get("tasks", [])
+    reason = response.get("reason", "")
+    debug = response.get("debug", "")
+    log(f"Tasks = {tasks}")
+    log(f"Reason: {reason}")
+    if debug:
+        log(debug)
+    gpt.append_prompt(build_forecast_task_prompt(build_data_inventory(data_root)))
+    for task in tasks:
+        prompt_path = PROMPT_BASE_DIR / f"{task}.txt"
+        try:
+            get_images = TASK_DEFINITION[task]
+            with open(prompt_path, "r") as f:
+                gpt.append(f.read(), image_paths=get_images(data_root))
+        except Exception as e:
+            log(str(e))
+    response = gpt.send(json_schema=TASK_OUTPUT_JSON_SCHEMA)
+    log("status_code=" + str(response.get("status_code")))
+    log(response.get("need", []))
+    log(f"Used tokens: {gpt.token_used}")
+    return response.get("summary", {}) 
+
+
 def run_once(args: argparse.Namespace) -> None:
     data_root = args.out / "data"
+    for model in MODELS:
+        model.clear_cached_plan()
+
     prune_old_runs(data_root, days=2)
     download_all_models(
         models=MODELS,
@@ -809,31 +1012,24 @@ def run_once(args: argparse.Namespace) -> None:
         workers=args.workers,
         overwrite=False,
     )
-    summary = {}
-    sleep = "1DAY"
+
     if not args.no_gpt:
-        gpt = ChatGPTSession("gpt-5.2", data_root=data_root)
-        response = gpt.send(build_forecast_init_input(fetch_rwdi_forecast()))
-        summary = response.get("summary", summary)
-        sleep = response.get("sleep", sleep)
-        while not summary:
-            log(response)
-            needs = response["need"]
-            abs_images = [args.out / Path(p) for p in needs]
-            response = gpt.send("Here are the requested images:\n{}".format("\n".join(needs)), abs_images)
-            summary = response.get("summary", summary)
-            sleep = response.get("sleep", sleep)
-        log(f"Used tokens: {gpt.token_used}")
+        summary = call_chatgpt_analysis(args, data_root)
+    else:
+        summary = {}
 
     index_path = args.out / "index.html"
     render_viewer_html(build_groups_payload(data_root), summary, format_generated_at_pst(), index_path)
     log(f"Rendered to {index_path}")
-    log(f"Next report after {sleep}")
-    return {
-        "1DAY": 24 * 3600,
-        "3HR": 3 * 3600,
-        "12HR": 12 * 3600,
-    }[sleep]
+
+
+def seconds_until_next_run(now_utc: Optional[datetime] = None) -> int:
+    tz = ZoneInfo("America/Vancouver")
+    now = (now_utc or datetime.now(timezone.utc)).astimezone(tz)
+    target = now.replace(hour=18, minute=0, second=0, microsecond=0)
+    if now >= target:
+        target = target + timedelta(days=1)
+    return max(1, int((target - now).total_seconds()))
 
 
 def main() -> None:
@@ -844,13 +1040,14 @@ def main() -> None:
 
     while True:
         try:
-            sleep = run_once(args)
+            run_once(args)
         except Exception as e:
             err = traceback.format_exc()
             log(err)
-            sleep = 3600
-        log(f"Now sleep for {sleep}s")
-        time.sleep(sleep)
+        sleep_seconds = seconds_until_next_run()
+        next_run = datetime.now(timezone.utc).astimezone(ZoneInfo("America/Vancouver")) + timedelta(seconds=sleep_seconds)
+        log(f"Next run scheduled at {next_run.strftime('%Y-%m-%d %H:%M %Z')} ({sleep_seconds}s)")
+        time.sleep(sleep_seconds)
 
 
 if __name__ == "__main__":

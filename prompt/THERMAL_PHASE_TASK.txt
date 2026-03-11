@@ -1,0 +1,59 @@
+------
+
+Task: THERMAL_PHASE_TASK
+
+Condition:
+Trigger this task when precipitation is present or likely in the short term (0-72h), and thermal structure may materially change precipitation phase or snow quality at Whistler ski-relevant elevations.
+
+Inputs:
+- Regional precip-phase graphics with 1000-500 mb thickness preferred.
+- Freezing level / snowline related fields if available.
+- Supporting large-scale fields only when needed to interpret trend direction.
+- Multiple models may be provided, with uneven UTC coverage and lead-time length.
+
+Goal:
+Assess whether ongoing or upcoming precipitation will fall as dry snow, dense/wet snow, mixed phase, or rain at Whistler ski elevations, with primary focus on upper mountain and alpine (~1600-2200 m).
+Provide a clear, decision-oriented phase-risk interpretation tied to timing windows.
+
+Analysis focus:
+1. Thermal trend through event window
+   - Is the thermal profile cooling, warming, or oscillating during precipitation?
+   - Identify key transition windows rather than single-point values.
+   - Distinguish brief warm spikes from sustained warming.
+
+2. Phase risk at ski-relevant elevations
+   - Evaluate likely phase at upper mountain/alpine first, then mid-mountain only if decision-relevant.
+   - Classify thermal impact as:
+     - FAVORABLE_COLD: phase supports dry or reasonably light snow
+     - MARGINAL_WARM: denser or wetter snow likely, but still mostly snow at key elevations
+     - PHASE_RISK: mixed/rain risk or clear quality degradation in key ski zones
+   - Explicitly note if rain risk is mostly low-elevation-limited versus extending into upper terrain.
+
+3. Thickness-based interpretation
+   - Use 1000-500 mb thickness contours as trend guidance, not deterministic truth.
+   - Apply these empirical anchors:
+     - 552 dam: ~2500 m freezing level
+     - 546 dam: ~2000 m freezing level
+     - 540 dam: ~1500 m freezing level
+     - 534 dam: ~1000 m freezing level
+     - 528 dam: ~500 m freezing level
+     - 522 dam: ~sea level freezing level
+   - Prioritize contour movement direction and persistence over exact contour placement at one timestamp.
+
+4. Model convergence and structural disagreement
+   - Compare models on thermal trend direction, transition timing, and phase envelope.
+   - Distinguish minor timing noise from structural disagreement (e.g., one model warms aloft while others cool).
+   - Assign qualitative convergence level (HIGH / MED / LOW) with brief justification.
+
+5. Decision relevance
+   - State whether phase trend is improving, degrading, or neutral for near-term ski quality.
+   - Highlight what specific change would flip the interpretation (e.g., sustained 546 dam push inland, delayed cooling onset).
+
+Decision logic:
+- If thermal structure is stable and clearly cold during precip, finalize without extra image requests.
+- If phase hinges on a narrow timing boundary or model disagreement, request the minimum additional images needed around the transition window.
+
+Notes:
+- Keep analysis trend-based and conservative; avoid overconfidence in deterministic freezing-level numbers.
+- Do not overemphasize valley/mid-mountain warmth when alpine remains clearly in snow phase.
+- Mention uncertainty explicitly whenever phase classification depends on unresolved short-term timing.

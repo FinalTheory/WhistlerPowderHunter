@@ -1,0 +1,47 @@
+------
+
+Task: PATTERN_TASK
+
+Condition:
+This task is triggered only when there is high confidence that no meaningful snowfall or snow-producing precipitation is expected in the short term (e.g., next 3-7 days).
+
+Inputs:
+Large-scale circulation diagnostics, primarily 500mb height and 500mb height anomaly sequences from multiple global and regional models (e.g., ECMWF, ECMWF-AIFS, GFS, ICON, GDPS, CFS), focused on the PNW / Whistler region.
+
+Goal:
+Assess whether the current synoptic-scale background favors a snow-free regime and whether that regime is likely to persist.
+Specifically:
+- Classify the current background state as RIDGE, TROUGH, or TRANSITION.
+- Evaluate background pattern stability over the next 7–14 days.
+- Identify whether there are credible signals of a pattern change.
+- Estimate a model agreement score in the levels of LOW - MED - HIGH.
+
+Heuristics:
+- Use 500mb height anomalies as the primary diagnostic for background state and trend.
+- Persistent positive height anomalies over the PNW indicate a RIDGE; persistent negative anomalies indicate a TROUGH.
+- Weakening anomalies, displacement, or sign changes indicate a TRANSITION.
+- For the 7–14 day window:
+  - STABLE: anomaly pattern remains coherent with little positional or amplitude change.
+  - UNSTABLE: increasing spread, weakening, or loss of coherence.
+  - SHIFTING: systematic displacement, erosion, or sign reversal.
+- Look for pattern change signals, including:
+  - Sustained height falls or anomaly weakening over the PNW.
+  - Upstream trough progression capable of eroding an existing ridge.
+  - Breakdown of blocking structures in extended-range guidance.
+- Model agreement should account for:
+  - Consistency of anomaly sign and placement across models.
+  - Consistency of trend direction through time.
+  - The number of models available at a given valid time.
+- IMPORTANT: Models have different maximum forecast horizons.
+  - Prefer valid times with the greatest multi-model overlap.
+  - Do not penalize shorter-range models; instead reduce confidence when fewer models are available at longer lead times.
+- If lead time exceeds ~7 days, cap confidence unless multiple independent models show consistent evolution.
+
+Interpretation guidance:
+This task is diagnostic and trend-focused.
+Prioritize large-scale structure, persistence, and evolution over precise timing.
+Use very long-range models only to support or weaken confidence in pattern persistence, not as deterministic triggers.
+
+Return intent:
+Determine whether the background supports a NO_SNOW regime and summarize pattern state, stability, pattern-change likelihood, and model agreement.
+If uncertainty is dominated by missing key time slices or missing model perspectives, indicate which additional large-scale fields would most reduce uncertainty.

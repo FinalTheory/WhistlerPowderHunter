@@ -1,0 +1,42 @@
+------
+
+Task: WIND_OPERATION_TASK
+
+Condition:
+Trigger this task ONLY when a short-term weather system is present or approaching, and wind may be a limiting factor for alpine lift operations within the next 24 hours.
+
+Inputs:
+- Short-range wind field graphics, with 700 mb preferred.
+- Models may include HRDPS, RDPS, and GFS.
+- Forecast coverage across models and UTC times may be uneven.
+
+Goal:
+Assess short-term (0–24h) wind speed trends over Whistler alpine terrain and determine whether wind poses a credible risk to alpine lift operations.
+Refer to Whistler sensor station data to determine whether real-world temperature and wind trends are consistent with model expectations.
+
+Analysis focus:
+1. Wind speed trend (0–24h)
+   - Is wind strengthening, weakening, or steady?
+   - Approximate timing of peak winds.
+   - Distinguish brief spikes from sustained high-wind periods.
+
+2. Alpine operational risk
+   - Classify impact as:
+     - LOW: unlikely to affect alpine lifts
+     - MARGINAL: possible delays or partial openings
+     - HIGH: likely alpine closures
+   - Consider wind magnitude, duration, and persistence.
+   - Note that Whistler alpine normally close if wind speed > 75km/h.
+
+3. Model agreement
+   - Do models agree on peak wind magnitude and timing?
+   - Distinguish minor timing/strength differences from structural disagreement.
+
+Decision logic:
+- If all models indicate LOW or MARGINAL winds, finalize assessment without requesting additional images.
+- If any model indicates sustained HIGH winds with potential alpine impact,
+  request the minimum additional wind images needed to confirm the risk window.
+
+Notes:
+- Focus on trend and decision relevance, not exact wind speed values.
+- Keep uncertainty explicit and conservative.

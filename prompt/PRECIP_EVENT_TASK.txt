@@ -1,0 +1,43 @@
+------
+
+Task: PRECIP_EVENT_TASK
+
+Condition:
+Trigger this task ONLY when a snowfall event is detected in the short term (next 0-72h), but the projected total snowfall is modest and does NOT meet a clear "big powder day" threshold (e.g. not a single-day 30cm+ event).
+
+Inputs:
+- Regional precipitation graphics (e.g., 6-hour QPF / precipitation type / 1000-500 mb thickness).
+- Large-scale background fields (e.g., 500 mb height or anomaly) if necessary.
+- Multiple models may be provided, with uneven forecast length coverage across UTC times.
+
+Goal:
+Assess whether evolving intensity, temperature, or model divergence could materially change snow quality or usability.
+Produce a concise, decision-oriented assessment for whether to go to Whistler or continue monitoring the event.
+Decide how closely the situation should be monitored.
+
+Analysis focus:
+1. Snowfall intensity evolution
+   - Is snowfall front-loaded, back-loaded, or steady?
+   - Any signals that intensity could ramp up or collapse?
+
+2. Thermal and phase risk
+   - Thickness / freezing-level trend during the event.
+   - Risk of snow turning wetter, mixed, or rain at Whistler elevations (1600m+).
+   - Is temperature trend improving or degrading with time?
+
+3. Model convergence vs divergence
+   - Do models agree on timing, intensity envelope, and thermal structure?
+   - Identify whether differences are minor (timing/placement noise) or structural (pattern-level disagreement).
+
+4. Decision relevance
+   - Is this shaping into a "nice refresh", "meh dusting", or "potentially underrated" event?
+   - Explicitly state what would need to change for this event to upgrade or downgrade.
+
+Model confidence:
+- Assign a qualitative convergence level (HIGH / MED / LOW).
+- Briefly justify the rating based on cross-model agreement.
+
+Guidance:
+- Focus on trends and relative changes, not precise snowfall totals.
+- Do NOT overstate confidence when lead time is short but models disagree.
+- If key uncertainty cannot be resolved with current inputs, request the minimum additional images needed.
