@@ -42,6 +42,7 @@ FRAME_TS_RE = re.compile(r"(\d{10})")
 WHISTLER_REGIONAL_LOCATION = (608.1, 628.6)
 WHISTLER_GLOBAL_LOCATION = (437, 374)
 WHISTLER_AC_LOCATION = (907, 477)
+TIME_ZONE = ZoneInfo("America/Vancouver")
 PRODUCT_META = {
     "500h_anom.na": "500mb height abnormality of North America",
     "700wh.ca_w": "700mb Height Wind Speed (kt) of West Canada",
@@ -445,27 +446,56 @@ MODEL_GROUPS: List[ModelGroup] = [
 # Flattened list for download pipeline compatibility.
 MODELS: List[ModelConfig] = [m for g in MODEL_GROUPS for m in g.models]
 
-def get_init_images(data_root):
+
+def sort_images_by_valid_time(image_paths: List[Path]) -> List[Path]:
+    def _extract_sort_key(p: Path):
+        try:
+            # Same deterministic parse strategy as image labeling:
+            # .../data/<model>/<run>/<product>/<filename>
+            rel_parts = p.relative_to(BASE_DIR).parts
+            if len(rel_parts) < 5 or rel_parts[0] != "data":
+                raise ValueError(f"Unexpected image path layout: {p}")
+            model_name = rel_parts[1]
+            product_name = rel_parts[3]
+            valid_dt = datetime.strptime(Path(rel_parts[4]).stem, "%Y%m%d%H")
+            return (0, valid_dt, model_name, product_name, str(p))
+        except Exception:
+            return (1, datetime.max, "zz_unknown", "zz_unknown", str(p))
+
+    return sorted(list(dict.fromkeys(image_paths)), key=_extract_sort_key)
+
+
+def select_init_images(data_root):
     now = datetime.now()
     model = MODEL_GROUPS[0][0]
     return model.select(data_root, now, now + timedelta(days=1))[:2] + model.select(data_root, now + timedelta(days=1)) + model.select(data_root, now + timedelta(days=2))
 
-def get_precip_images(data_root):
-    start = datetime.now(ZoneInfo("America/Vancouver"))
-    end = (start + timedelta(days=1)).replace(hour=15)
-    return MODEL_GROUPS[0][0].select(data_root, start, end) + MODEL_GROUPS[0][1].select(data_root, start, end) + MODEL_GROUPS[0][2].select(data_root, start, end)[::3]
 
-def get_wind_images(data_root):
-    start = datetime.now(ZoneInfo("America/Vancouver"))
+def select_precip_images(data_root):
+    start = datetime.now(TIME_ZONE)
+    end = (start + timedelta(days=1)).replace(hour=15)
+    # images from now to tomorrow 15:00
+    group1 =  MODEL_GROUPS[0][0].select(data_root, start, end) + MODEL_GROUPS[0][1].select(data_root, start, end) + MODEL_GROUPS[0][2].select(data_root, start, end)[::3]
+    # images from tomorrow 18:00 to 12:00 after tomorrow
+    start = end.replace(hour=18)
+    end = (start + timedelta(days=1)).replace(hour=12)
+    group2 =  MODEL_GROUPS[0][0].select(data_root, start, end) + MODEL_GROUPS[0][2].select(data_root, start, end)[::6]
+    return group1 + group2
+
+
+def select_wind_images(data_root):
+    start = datetime.now(TIME_ZONE)
     end = (start + timedelta(days=1)).replace(hour=15)
     return MODEL_GROUPS[1][0].select(data_root, start, end) + MODEL_GROUPS[1][1].select(data_root, start, end) + MODEL_GROUPS[1][2].select(data_root, start, end)[::3]
 
+
 TASK_DEFINITION = {
     "PATTERN_TASK": lambda _: [],
-    "PRECIP_EVENT_TASK": get_precip_images,
+    "PRECIP_EVENT_TASK": select_precip_images,
     "THERMAL_PHASE_TASK": lambda _: [],
-    "WIND_OPERATION_TASK": get_wind_images,
+    "WIND_OPERATION_TASK": select_wind_images,
 }
+
 
 TASK_SELECTION_JSON_SCHEMA = {
     "name": "task_scheduler_output",
@@ -487,6 +517,7 @@ TASK_SELECTION_JSON_SCHEMA = {
         "additionalProperties": False,
     },
 }
+
 
 TASK_OUTPUT_JSON_SCHEMA: Dict[str, object] = {
     "name": "task_analysis_output",
@@ -513,8 +544,9 @@ TASK_OUTPUT_JSON_SCHEMA: Dict[str, object] = {
                 "required": ["en", "zh"],
                 "additionalProperties": False,
             },
+            "debug": {"type": "string"},
         },
-        "required": ["status_code", "need", "summary"],
+        "required": ["status_code", "need", "summary", "debug"],
         "additionalProperties": False,
     },
 }
@@ -776,7 +808,7 @@ def build_data_inventory(data_root: Path) -> Dict[str, object]:
 
 
 def format_generated_at_pst() -> str:
-    now_pst = datetime.now(timezone.utc).astimezone(ZoneInfo("America/Vancouver"))
+    now_pst = datetime.now(timezone.utc).astimezone(TIME_ZONE)
     return now_pst.strftime("%Y-%m-%d %H:%M %Z")
 
 
@@ -911,7 +943,7 @@ class ChatGPTSession:
         self.messages.append({"role": "system", "content": prompt})
 
     def append(self, message: str, image_paths: Optional[List[Path]] = None) -> None:
-        images = image_paths or []
+        images = sort_images_by_valid_time(image_paths) or []
 
         user_content = []
         user_content.append({"type": "text", "text": message})
@@ -920,6 +952,32 @@ class ChatGPTSession:
             if not img.exists():
                 log(f"Image {img} not found, skip it.")
                 continue
+
+            try:
+                # Build a deterministic image label from local path convention:
+                # .../data/<model>/<run>/<product>/<valid_time>
+                rel_parts = img.relative_to(BASE_DIR).parts
+                if len(rel_parts) < 5 or rel_parts[0] != "data":
+                    raise ValueError(f"Unexpected image path layout: {img}")
+                model_name = rel_parts[1]
+                run_time = rel_parts[2]
+                product_key = rel_parts[3]
+                valid_time = Path(rel_parts[4]).stem
+                product_desc = PRODUCT_META.get(product_key)
+                label_lines = [
+                    f"Model: {model_name.upper()}",
+                    f"Product: {product_key}",
+                    f"Valid UTC: {valid_time}",
+                    f"Run UTC: {run_time}",
+                ]
+                if product_desc:
+                    label_lines.append(f"Product Description: {product_desc}")
+                label_lines.append("Note: Whistler location is marked by a red dot on the image.")
+                user_content.append({"type": "text", "text": "\n".join(label_lines)})
+
+            except Exception:
+                log(f"Image metadata parse failed, skip this image: {img}")
+
             mime = "image/png"
             suffix = img.suffix.lower()
             if suffix in {".jpg", ".jpeg"}:
@@ -973,16 +1031,34 @@ class ChatGPTSession:
         """Return the current message history."""
         return list(self.messages)
 
+    def dump_to(self, file_name):
+        def transform(msg):
+            if msg["role"] == 'user':
+                for c in msg["content"]:
+                    if c["type"] == "image_url":
+                        c["image_url"]["url"] = ""
+                return msg
+            return msg
+        messages = [transform(m) for m in self.messages if m]
+        with open(file_name, 'w') as f:
+            f.write(json.dumps(messages, indent=2))
+
 
 def call_chatgpt_analysis(args: argparse.Namespace, data_root: Path) -> Dict[str, str]:
-    init_images = get_init_images(data_root)
+    init_images = select_init_images(data_root)
     gpt = ChatGPTSession("gpt-5.2", data_root=data_root)
     gpt.append_prompt(INIT_PROMPT_PATH.open("r", encoding="utf-8").read())
     gpt.append(build_forecast_init_input(fetch_rwdi_forecast()), image_paths=init_images)
-    response = gpt.send(json_schema=TASK_SELECTION_JSON_SCHEMA)
+    if not args.no_gpt:
+        response = gpt.send(json_schema=TASK_SELECTION_JSON_SCHEMA)
+    else:
+        gpt.dump_to("init.txt")
+        response = {
+            "tasks": list(TASK_DEFINITION.keys())
+        }
     tasks = response.get("tasks", [])
     reason = response.get("reason", "")
-    debug = response.get("debug", "")
+    debug = response.get("debug")
     log(f"Tasks = {tasks}")
     log(f"Reason: {reason}")
     if debug:
@@ -996,11 +1072,18 @@ def call_chatgpt_analysis(args: argparse.Namespace, data_root: Path) -> Dict[str
                 gpt.append(f.read(), image_paths=get_images(data_root))
         except Exception as e:
             log(str(e))
-    response = gpt.send(json_schema=TASK_OUTPUT_JSON_SCHEMA)
+    if not args.no_gpt:
+        response = gpt.send(json_schema=TASK_OUTPUT_JSON_SCHEMA)
+    else:
+        gpt.dump_to("task.txt")
+        response = {}
     log("status_code=" + str(response.get("status_code")))
     log(response.get("need", []))
     log(f"Used tokens: {gpt.token_used}")
-    return response.get("summary", {}) 
+    debug = response.get("debug")
+    if debug:
+        log(debug)
+    return response.get("summary", {})
 
 
 def run_once(args: argparse.Namespace) -> None:
@@ -1015,20 +1098,14 @@ def run_once(args: argparse.Namespace) -> None:
         workers=args.workers,
         overwrite=False,
     )
-
-    if not args.no_gpt:
-        summary = call_chatgpt_analysis(args, data_root)
-    else:
-        summary = {}
-
+    summary = call_chatgpt_analysis(args, data_root)
     index_path = args.out / "index.html"
     render_viewer_html(build_groups_payload(data_root), summary, format_generated_at_pst(), index_path)
     log(f"Rendered to {index_path}")
 
 
 def seconds_until_next_run(now_utc: Optional[datetime] = None) -> int:
-    tz = ZoneInfo("America/Vancouver")
-    now = (now_utc or datetime.now(timezone.utc)).astimezone(tz)
+    now = (now_utc or datetime.now(timezone.utc)).astimezone(TIME_ZONE)
     target = now.replace(hour=18, minute=0, second=0, microsecond=0)
     if now >= target:
         target = target + timedelta(days=1)
@@ -1048,7 +1125,7 @@ def main() -> None:
             err = traceback.format_exc()
             log(err)
         sleep_seconds = seconds_until_next_run()
-        next_run = datetime.now(timezone.utc).astimezone(ZoneInfo("America/Vancouver")) + timedelta(seconds=sleep_seconds)
+        next_run = datetime.now(timezone.utc).astimezone(TIME_ZONE) + timedelta(seconds=sleep_seconds)
         log(f"Next run scheduled at {next_run.strftime('%Y-%m-%d %H:%M %Z')} ({sleep_seconds}s)")
         time.sleep(sleep_seconds)
 

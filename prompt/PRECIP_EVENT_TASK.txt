@@ -14,6 +14,7 @@ Goal:
 Assess whether evolving intensity, temperature, or model divergence could materially change snow quality or usability.
 Produce a concise, decision-oriented assessment for whether to go to Whistler or continue monitoring the event.
 Decide how closely the situation should be monitored.
+Evaluate whether multi-model snowfall trends support or challenge RWDI-provided snowfall numbers, and express a confidence interval for those numbers.
 
 Analysis focus:
 1. Snowfall intensity evolution
@@ -33,9 +34,23 @@ Analysis focus:
    - Is this shaping into a "nice refresh", "meh dusting", or "potentially underrated" event?
    - Explicitly state what would need to change for this event to upgrade or downgrade.
 
+5. RWDI snowfall number consistency check
+   - Extract RWDI snowfall amounts for the relevant period (if provided in synopsis/day cards).
+   - Compare RWDI values against multi-model trend consensus, not single-frame peaks.
+   - Rate RWDI number consistency using:
+     - HIGH: RWDI numbers are broadly consistent with the multi-model trend envelope
+     - MED: RWDI numbers are plausible but sensitive to timing/thermal uncertainty
+     - LOW: RWDI numbers are outside or weakly supported by current multi-model envelope
+   - Provide a practical snowfall confidence interval (low/high range) for the decision window,
+     based on model spread and trend persistence.
+   - If RWDI numbers appear high/low relative to model consensus, explain the likely reason
+     (timing offset, intensity concentration, phase uncertainty, or model divergence).
+
 Model confidence:
 - Assign a qualitative convergence level (HIGH / MED / LOW).
 - Briefly justify the rating based on cross-model agreement.
+- Explicitly relate convergence level to the width of the snowfall confidence interval
+  (HIGH -> narrower range, LOW -> wider range).
 
 Guidance:
 - Focus on trends and relative changes, not precise snowfall totals.

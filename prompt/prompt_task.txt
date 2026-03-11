@@ -118,7 +118,8 @@ The response format is strictly defined as:
   "summary": {
     "en": "analysis result in English...",
     "zh": "analysis result in Chinese..."
-  }
+  },
+  "debug": "describe input anomalies or return empty string"
 }
 
 Rules:
@@ -142,6 +143,11 @@ Rules:
    - "SOME_SNOW": snowfall event is detected but the projected total snowfall is modest and does NOT meet a clear “big powder day” threshold.
    - "DRY_POW": cold storm or snowfall likely to produce dry, skiable powder.
    - "WARM_STORM": warm system, high snow line, rain, or snow-quality degradation likely.
+
+5. "debug" MUST always be present.
+   - If the input appears complete and reasonable, set "debug" to an empty string "".
+   - If any input issue is detected (missing critical context, inconsistent signals, malformed or suspicious data),
+     explain the issue in "debug".
 
 ======
 

@@ -1,4 +1,4 @@
-# Whistler Epic Weather
+# Whistler Powder Hunter
 
 [DEMO](https://blog.finaltheory.me/whistler/)
 
@@ -6,7 +6,7 @@ English | [中文](#中文)
 
 ## English
 
-Whistler Epic Weather is a ski-focused weather decision project that turns raw forecast charts into actionable ski decisions.
+Whistler Powder Hunter is a ski-focused weather decision project that turns raw forecast charts into actionable ski decisions. Refer to [An In-Depth Guide to Whistler Weather Forecasts](https://blog.finaltheory.me/en/research/whistler-weather-forecast.html) for more background knowledge.
 
 The product is designed around two decision horizons:
 - Tactical decisions (0-72h): first chair / first tracks timing, alpine wind-closure risk, snowline/phase impact on snow quality.
@@ -47,7 +47,7 @@ Task dimensions:
 
 ## 中文
 
-Whistler Epic Weather 是一个面向滑雪决策的天气分析项目，目标是把「看天气图」变成「可执行的滑雪决策」。
+Whistler Powder Hunter 是一个面向滑雪决策的天气分析项目，目标是把「看天气图」变成「可执行的滑雪决策」。请参考[惠斯勒天气预报深度指南](https://blog.finaltheory.me/research/whistler-weather-forecast.html)了解更多背景知识。
 
 项目核心关注两类问题：
 - 短期战术决策（0-72h）：是否值得顶门、是否可能强风关 alpine、雪线/相态是否恶化雪质。

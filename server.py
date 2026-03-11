@@ -15,7 +15,7 @@ BASE_DIR = Path(__file__).parent.resolve()
 RENDERED_VIEW = BASE_DIR / "index.html"
 DATA_DIR = BASE_DIR / "data"
 
-app = FastAPI(title="Whistler Epic Weather Viewer", version="0.2.0")
+app = FastAPI(title="Whistler Powder Hunter", version="0.1.0")
 
 # Serve everything in the repo as static assets so the data/raw tree is reachable.
 app.mount("/static", StaticFiles(directory=BASE_DIR), name="static")
