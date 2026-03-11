@@ -422,9 +422,10 @@ MODEL_GROUPS: List[ModelGroup] = [
     ModelGroup(
         name="Wind Speed",
         models=[
-            PivotalWeatherModel(name="gfs", product="700wh", region="ca_w", annotate=WHISTLER_REGIONAL_LOCATION),
             PivotalWeatherModel(name="rdps", product="700wh", region="ca_w", annotate=WHISTLER_REGIONAL_LOCATION),
+            PivotalWeatherModel(name="nam", product="700wh", region="ca_w", annotate=WHISTLER_REGIONAL_LOCATION),
             PivotalWeatherModel(name="hrdps", product="700wh", region="ca_w", annotate=WHISTLER_REGIONAL_LOCATION),
+            PivotalWeatherModel(name="gfs", product="700wh", region="ca_w", hide=True, annotate=WHISTLER_REGIONAL_LOCATION),
         ],
     ),
     ModelGroup(
@@ -443,6 +444,11 @@ MODEL_GROUPS: List[ModelGroup] = [
 
 # Flattened list for download pipeline compatibility.
 MODELS: List[ModelConfig] = [m for g in MODEL_GROUPS for m in g.models]
+
+def get_init_images(data_root):
+    now = datetime.now()
+    model = MODEL_GROUPS[0][0]
+    return model.select(data_root, now, now + timedelta(days=1))[:2] + model.select(data_root, now + timedelta(days=1)) + model.select(data_root, now + timedelta(days=2))
 
 def get_precip_images(data_root):
     start = datetime.now(ZoneInfo("America/Vancouver"))
@@ -969,10 +975,7 @@ class ChatGPTSession:
 
 
 def call_chatgpt_analysis(args: argparse.Namespace, data_root: Path) -> Dict[str, str]:
-    now = datetime.now()
-    model = MODEL_GROUPS[0][0]
-    init_images = model.select(data_root, now, now + timedelta(days=1))[:2] + model.select(data_root, now + timedelta(days=1)) + model.select(data_root, now + timedelta(days=2))
-    # print(init_images)
+    init_images = get_init_images(data_root)
     gpt = ChatGPTSession("gpt-5.2", data_root=data_root)
     gpt.append_prompt(INIT_PROMPT_PATH.open("r", encoding="utf-8").read())
     gpt.append(build_forecast_init_input(fetch_rwdi_forecast()), image_paths=init_images)
