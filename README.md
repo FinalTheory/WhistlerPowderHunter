@@ -31,6 +31,19 @@ Task dimensions:
 - Minimum necessary inputs to avoid redundant context.
 - Explicit uncertainty and model divergence in every conclusion.
 
+### Forecast Philosophy
+
+- Read trends, not isolated numbers. In coastal mountains, exact values like snowfall totals or freezing-level snapshots can be misleading if detached from system evolution.
+- Treat freezing level as a structural signal, not a single truth number. We care more about air-mass movement, trend speed, and persistence than one timestamp value.
+- Prioritize physically consistent signals: synoptic pattern, phase trend, wind evolution, and terrain interaction.
+- Use model convergence as a practical confidence cue. If timing/track/thermal signals converge across models, decision confidence improves; if they diverge, keep the range wide.
+- Keep a strong separation between forecast model output and observed reality. Models are guidance; station observations and actual accumulation are the final truth.
+- Focus on Whistler-relevant first chair decisions: tomorrow daytime ski quality, tomorrow-night precipitation behavior, and conditions into daytime of the following day.
+
+Reference context for users:
+- For short-term tactical reads, many local skiers follow updates from `@powderpicker`.
+- RWDI synopsis (Peak Live) is treated as a useful professional short-term source and should be distinguished from generic tourist-facing forecasts.
+
 ### Scope and Boundaries
 
 - This project supports in-bounds ski weather decisions; it does not provide backcountry avalanche travel guidance.
@@ -51,7 +64,7 @@ Whistler Powder Hunter 是一个面向滑雪决策的天气分析项目，目标
 
 项目核心关注两类问题：
 - 短期战术决策（0-72h）：是否值得顶门、是否可能强风关 alpine、雪线/相态是否恶化雪质。
-- 中期规划决策（4-14d）：在持续少雪窗口下，是否存在明确的天气形势转折信号。
+- 中期规划决策（4-14d）：在持续少雪窗口下，是否存在明确的天气形势转折信号，是否建议规划一趟欧洲/日本旅行。
 
 ### 设计思路
 
@@ -71,6 +84,19 @@ Whistler Powder Hunter 是一个面向滑雪决策的天气分析项目，目标
 - 趋势优先：强调系统演变与时间窗口，不执着单点数值。
 - 最小必要信息：按需使用图像与数据，避免冗余输入。
 - 显式不确定性：结论必须包含模型分歧与不确定边界。
+
+### 预报方法论
+
+- 读趋势而不是用数值诈骗。沿海山脉环境下，脱离系统演变去看降雪量、雪线等单点数字，容易误判。
+- 雪线是结构信号，不是单一真值。更重要的是冷暖气团推进方向、速度和持续性。
+- 优先关注物理上连贯的信号：大尺度背景、相态趋势、风场变化与传感器读数结合。
+- 把模型收敛当作实用置信度信号：多模型在时间、路径、温度趋势上趋同，判断才更稳；发散就要扩大区间。
+- 明确区分模型与实况：模型是参考，山顶传感器与 snow ruler 实际降雪才是最终事实。
+- 聚焦 Whistler 顶门的真实决策窗口：明天白天雪况、明晚降水行为，以及到后天白天为止的条件判断。
+
+用户参考语境：
+- 短期战术判断中，很多本地滑雪者会参考 `@powderpicker` 的更新。
+- Peak Live 上的 RWDI Synopsis 可作为相对专业的短期信息源，需要与游客导向预报区分看待。
 
 ### 项目边界
 

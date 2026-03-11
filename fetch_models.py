@@ -447,6 +447,10 @@ MODEL_GROUPS: List[ModelGroup] = [
 MODELS: List[ModelConfig] = [m for g in MODEL_GROUPS for m in g.models]
 
 
+def trunc_to_hour(dt, hour):
+    return dt.replace(hour=hour, minute=0, second=0, microsecond=0)
+
+
 def sort_images_by_valid_time(image_paths: List[Path]) -> List[Path]:
     def _extract_sort_key(p: Path):
         try:
@@ -473,7 +477,7 @@ def select_init_images(data_root):
 
 def select_precip_images(data_root):
     start = datetime.now(TIME_ZONE)
-    end = (start + timedelta(days=1)).replace(hour=15)
+    end = trunc_to_hour(start + timedelta(days=1), 15)
     # images from now to tomorrow 15:00
     group1 =  MODEL_GROUPS[0][0].select(data_root, start, end) + MODEL_GROUPS[0][1].select(data_root, start, end) + MODEL_GROUPS[0][2].select(data_root, start, end)[::3]
     # images from tomorrow 18:00 to 12:00 after tomorrow
@@ -485,12 +489,21 @@ def select_precip_images(data_root):
 
 def select_wind_images(data_root):
     start = datetime.now(TIME_ZONE)
-    end = (start + timedelta(days=1)).replace(hour=15)
+    end = trunc_to_hour(start + timedelta(days=1), 15)
     return MODEL_GROUPS[1][0].select(data_root, start, end) + MODEL_GROUPS[1][1].select(data_root, start, end) + MODEL_GROUPS[1][2].select(data_root, start, end)[::3]
 
 
+def select_pattern_task_images(data_root):
+    now = datetime.now(timezone.utc)
+    # select avalanche canada images from 3 days later until end, and choose 4 frames
+    images = MODEL_GROUPS[0][0].select(data_root, now + timedelta(days=3), now + timedelta(days=30))
+    # and background pattern images from 5, 10, 14 days later
+    dates = [trunc_to_hour(now + timedelta(days=d), 12) for d in (5, 10, 14)]
+    return [p for d in dates for p in MODEL_GROUPS[2].select(data_root, d)] + images[::max(1, len(images) // 3)]
+
+
 TASK_DEFINITION = {
-    "PATTERN_TASK": lambda _: [],
+    "PATTERN_TASK": select_pattern_task_images,
     "PRECIP_EVENT_TASK": select_precip_images,
     "THERMAL_PHASE_TASK": lambda _: [],
     "WIND_OPERATION_TASK": select_wind_images,
@@ -969,6 +982,7 @@ class ChatGPTSession:
                     f"Product: {product_key}",
                     f"Valid UTC: {valid_time}",
                     f"Run UTC: {run_time}",
+                    f"Image Path: {'/'.join(rel_parts)}",
                 ]
                 if product_desc:
                     label_lines.append(f"Product Description: {product_desc}")

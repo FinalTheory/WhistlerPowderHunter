@@ -56,3 +56,6 @@ Guidance:
 - Focus on trends and relative changes, not precise snowfall totals.
 - Do NOT overstate confidence when lead time is short but models disagree.
 - If key uncertainty cannot be resolved with current inputs, request the minimum additional images needed.
+- Keep precipitation assessment within the fixed decision window:
+  tomorrow daytime, tomorrow night, and up to daytime of the day after tomorrow.
+- Do not request late-period precipitation frames beyond day-after-tomorrow daytime unless explicitly requested by the user.

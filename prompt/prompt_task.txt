@@ -30,6 +30,14 @@ Your analysis must adhere to the following rules:
 - At any step, if requested images are insufficient to reach a final decision, you may request further images.
 - The location of the Whistler area is marked on ALL forecast images with a red dot; use this marker for spatial reference.
 
+TIME WINDOW CONSTRAINT (CRITICAL)
+- Regardless of run time (now), focus only on:
+  1) tomorrow daytime ski condition,
+  2) tomorrow night precipitation,
+  3) conditions up to daytime of the day after tomorrow.
+- Do not request additional images outside this window.
+- If uncertainty exists mainly beyond this window, mention it briefly in "debug" and keep "need" unchanged for out-of-window periods.
+
 ======
 
 DATASET DEFINITION
@@ -133,6 +141,7 @@ Rules:
 2. Use "need" ONLY when additional image data is required to improve or finalize analysis.
    - Each entry in "need" MUST be a valid image path string.
    - Paths MUST follow the rule mentioned above.
+   - Do NOT request any image that has already been provided in the current conversation.
 
 3. Use "summary" to provide the current analysis result.
    - summary.en must contain the analysis result in English.
