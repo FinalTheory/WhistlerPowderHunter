@@ -20,6 +20,10 @@ The intended architecture is scheduler + specialist analysis:
 - Stage 1 (routing): choose which tasks are worth running from RWDI synopsis and Avalanche Canada charts.
 - Stage 2 (analysis): request only the minimum required images and produce bilingual conclusions.
 
+System structure:
+- Frontend: a lightweight validation UI for grouped forecast images and generated conclusions.
+- Backend: a Python workflow that fetches model/sensor data, routes tasks, calls the LLM for analysis, and renders output to `index.html`.
+
 Task dimensions:
 - `PATTERN_TASK`
 - `PRECIP_EVENT_TASK`
@@ -32,6 +36,16 @@ Task dimensions:
 - Trend-first interpretation over single deterministic numbers.
 - Minimum necessary inputs to avoid redundant context.
 - Explicit uncertainty and model divergence in every conclusion.
+
+### UI For Fast Validation
+
+The UI is intentionally designed for quick human double-check after LLM output:
+- A top summary panel presents the model conclusion in plain language, including status and uncertainty.
+- Forecast images of multiple models are grouped by decision dimension (regional precipitation, wind trend, global pattern) so users can verify the conclusion against the exact evidence.
+- Frames are labeled with model run and valid time metadata in both UTC and PST, to reduce misread risk and make duplicate or missing inputs obvious.
+- Time slider and side-by-side layout let users quickly inspect trend continuity and model divergence without digging through raw files.
+
+The practical goal is simple: let users do a rapid second-pass sanity check. Human brains do not consume tokens anyway :)
 
 ### Forecast Philosophy
 
@@ -74,6 +88,10 @@ Whistler Powder Hunter 是一个面向滑雪决策的天气分析项目，目标
 - 第一层（调度）：根据 RWDI 文本和 Avalanche Canada 图，选择最值得分析的任务。
 - 第二层（分析）：按任务请求最小必要图像，输出中英文总结与更新频率建议。
 
+系统结构：
+- 前端：用于快速校验结论的轻量 Web UI，展示分组气象图与分析结果。
+- 后端：Python 流水线，负责抓取模型/传感器数据、任务路由、调用 LLM 分析，并渲染输出到 `index.html`。
+
 当前任务维度：
 - `PATTERN_TASK`
 - `PRECIP_EVENT_TASK`
@@ -86,6 +104,16 @@ Whistler Powder Hunter 是一个面向滑雪决策的天气分析项目，目标
 - 趋势优先：强调系统演变与时间窗口，不执着单点数值。
 - 最小必要信息：按需使用图像与数据，避免冗余输入。
 - 显式不确定性：结论必须包含模型分歧与不确定边界。
+
+### 用于快速检验结论的 Web UI
+
+这个 UI 的设计目标是让用户在看完 LLM 结论后，能够快速做一次人工复核：
+- 顶部总结区先给出结论、状态和不确定性，先看结论再看证据。
+- 多模型图像按决策维度分组（区域降水、风场趋势、全球背景场），方便用户针对性核验。
+- 每张图都带 model run 和 valid time（UTC + PST）标签，能快速发现图像重复、缺失或时间戳错位。
+- 时间滑块 + 并排布局可以快速检查趋势连续性和多个模型发散程度，而不必肉眼逐个对比。
+
+目标很简单：让结论可被快速二次校验。毕竟人脑不消耗 token :)
 
 ### 预报方法论
 

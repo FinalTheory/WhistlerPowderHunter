@@ -1,6 +1,6 @@
 """
 Minimal FastAPI server to serve pre-rendered viewer and static assets.
-Run fetch_models.py first to generate viewer_rendered.html.
+Run render.py first to generate index.html.
 """
 from __future__ import annotations
 
@@ -26,7 +26,7 @@ app.mount("/data", StaticFiles(directory=BASE_DIR / "data"), name="data")
 async def root():
     target = RENDERED_VIEW
     if not target.exists():
-        raise HTTPException(status_code=404, detail="viewer file not found; run fetch_models.py to generate it")
+        raise HTTPException(status_code=404, detail="viewer file not found; run render.py to generate it")
     return FileResponse(target)
 
 
