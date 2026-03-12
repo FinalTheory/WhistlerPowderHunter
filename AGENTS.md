@@ -1,1 +1,5 @@
-- 持续维护ReadMe.md与项目的一致性。
+- Keep ReadMe.md in sync with the project.
+- Do not force end-to-end runnable output in every change. Partial implementation is allowed when requirements are uncertain.
+- For uncertain or undefined parts, leave explicit placeholders (for example: `TODO`, `pass`, or empty stubs) instead of guessing behavior.
+- Prefer explicit arguments at call sites; avoid default parameters unless there is a clear and stable reason.
+- When a default parameter is necessary, document why that default is safe and intentional.
