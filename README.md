@@ -16,13 +16,13 @@ The product is designed around two decision horizons:
 
 ### Design Approach
 
-The intended architecture is scheduler + specialist analysis:
-- Stage 1 (routing): choose which tasks are worth running from RWDI synopsis and Avalanche Canada charts.
-- Stage 2 (analysis): request only the minimum required images and produce bilingual conclusions.
-
 System structure:
 - Frontend: a lightweight validation UI for grouped forecast images and generated conclusions.
 - Backend: a Python workflow that fetches model/sensor data, routes tasks, calls the LLM for analysis, and renders output to `index.html`.
+
+The backend architecture is scheduler + specialist analysis:
+- Stage 1 (routing): choose which tasks are worth running from RWDI synopsis and Avalanche Canada forecast images.
+- Stage 2 (analysis): request only the minimum required images and produce bilingual conclusions.
 
 Task dimensions:
 - `PATTERN_TASK`
@@ -45,7 +45,9 @@ The UI is intentionally designed for quick human double-check after LLM output:
 - Frames are labeled with model run and valid time metadata in both UTC and PST, to reduce misread risk and make duplicate or missing inputs obvious.
 - Time slider and side-by-side layout let users quickly inspect trend continuity and model divergence without digging through raw files.
 
-The practical goal is simple: let users do a rapid second-pass sanity check. Human brains do not consume tokens anyway :)
+The practical goal is simple: let users do a rapid second-pass sanity check.
+
+Human brains do not consume tokens anyway :)
 
 ### Forecast Philosophy
 
@@ -84,13 +86,13 @@ Whistler Powder Hunter 是一个面向滑雪决策的天气分析项目，目标
 
 ### 设计思路
 
-系统采用任务调度 + 专项分析的思路：
-- 第一层（调度）：根据 RWDI 文本和 Avalanche Canada 图，选择最值得分析的任务。
-- 第二层（分析）：按任务请求最小必要图像，输出中英文总结与更新频率建议。
-
 系统结构：
 - 前端：用于快速校验结论的轻量 Web UI，展示分组气象图与分析结果。
 - 后端：Python 流水线，负责抓取模型/传感器数据、任务路由、调用 LLM 分析，并渲染输出到 `index.html`。
+
+后端系统采用任务调度 + 专项分析的思路：
+- 第一层（调度）：根据 RWDI 文本和 Avalanche Canada 图像，选择最值得分析的任务。
+- 第二层（分析）：按任务请求最小必要图像，输入到LLM，输出中英文气象总结与更新频率建议。
 
 当前任务维度：
 - `PATTERN_TASK`
