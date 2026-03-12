@@ -1,8 +1,10 @@
 # Whistler Powder Hunter
 
+English | [中文](#中文)
+
 [DEMO](https://blog.finaltheory.me/whistler/)
 
-English | [中文](#中文)
+<img src="https://raw.githubusercontent.com/FinalTheory/WhistlerPowderHunter/refs/heads/main/demo.jpg" style="zoom:30%;" />
 
 ## English
 
