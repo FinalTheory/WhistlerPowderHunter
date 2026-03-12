@@ -121,7 +121,6 @@ The output MUST start with '{' and end with '}'.
 The response format is strictly defined as:
 
 {
-  "status_code": "NO_EVENT | SOME_SNOW | DRY_POW | WARM_STORM",
   "need": ["data/<model>/<run_time>/<product>/<filename>", ...],
   "summary": {
     "en": "analysis result in English...",
@@ -147,13 +146,7 @@ Rules:
    - summary.en must contain the analysis result in English.
    - summary.zh must contain the analysis result in Chinese.
 
-4. The "status_code" MUST be chosen based on the final interpretation:
-   - "NO_EVENT": no meaningful snowfall or ski-relevant event expected.
-   - "SOME_SNOW": snowfall event is detected but the projected total snowfall is modest and does NOT meet a clear “big powder day” threshold.
-   - "DRY_POW": cold storm or snowfall likely to produce dry, skiable powder.
-   - "WARM_STORM": warm system, high snow line, rain, or snow-quality degradation likely.
-
-5. "debug" MUST always be present.
+4. "debug" MUST always be present.
    - If the input appears complete and reasonable, set "debug" to an empty string "".
    - If any input issue is detected (missing critical context, inconsistent signals, malformed or suspicious data),
      explain the issue in "debug".

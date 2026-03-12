@@ -1,0 +1,72 @@
+------
+
+Task: DECISION_TASK
+
+Condition:
+Use this task to synthesize tactical ski decisions across already-selected weather tasks.
+This task is optional and should be included only when the system needs explicit go/no-go guidance.
+
+Inputs:
+- Outputs/signals from other selected tasks.
+- RWDI synopsis and provided model/sensor context already in conversation.
+- HRDPS hourly frames from latest run time to next local 08:00 (Whistler PST/PDT) are already provided for DECISION_TASK in the current conversation context.
+
+Goal:
+Provide clear tactical decisions for:
+1) tomorrow daytime,
+2) day-after-tomorrow daytime,
+and briefly indicate whether a better powder window is likely after that (without requesting out-of-window data).
+
+Execution rules:
+- Keep all decisions inside existing `summary.en` and `summary.zh`.
+- In TL;DR, include explicit labels:
+  - Tomorrow: GO / GO_WITH_RISK / NO_GO
+  - Day After Tomorrow: GO / GO_WITH_RISK / NO_GO
+  - Next Better Window: YES / NO (add short note if YES)
+- Format these three TL;DR lines as "Conclusion + short note" in a fixed style:
+  - English:
+    - Tomorrow: <STATUS> (<short reason>)
+    - Day After Tomorrow: <STATUS> (<short reason>)
+    - Next Better Window: YES/NO (<short note>)
+  - Chinese:
+    - 明天：<STATUS>（简短原因）
+    - 后天：<STATUS>（简短原因）
+    - 下一个更好窗口：YES/NO（简短备注）
+- In each line, put the conclusion first and the note in parentheses after it.
+- Keep each note short and focused on the 1-3 most decision-relevant drivers only.
+- Use the overnight-to-next-local-08:00 evolution as primary evidence for first-chair timing and tomorrow go/no-go.
+- Do not request additional HRDPS frames inside the provided time window unless a specific key frame is missing or unreadable.
+- State status semantics consistently:
+  - GO: broadly worthwhile with flexible timing.
+  - GO_WITH_RISK: potentially worthwhile but with material operational risk (especially wind/lift disruption), or when a good window exists only if the user goes early before warming/rain/snow-quality degradation.
+  - NO_GO: not worthwhile for powder-oriented timing in the primary window.
+- If an early start is required because of warming, rain, rising snow line, or rapid snow-quality degradation, do NOT invent a new status; keep the status as GO_WITH_RISK and explain the early timing requirement in the note.
+
+Decision logic:
+1. No meaningful snowfall event
+   - If no meaningful snowfall signal exists, default to NO_GO for tactical powder decisions.
+   - This task is only for powder-oriented first-chair timing, not general resort-day enjoyment planning.
+
+2. Wind-first operational constraint
+   - If alpine wind risk is clearly HIGH and persistent, default to NO_GO.
+   - If user can still get value from mid-mountain, use GO_WITH_RISK.
+   - If wind risk is elevated but clearly trending down, GO can be recommended with explicit caveat.
+
+3. Snow support threshold
+   - If expected snowfall is unlikely to support roughly 10cm+ at mid-mountain, bias toward NO_GO.
+
+4. Warming / phase-degradation timing
+   - If warm system, high snow line, rain, or rapid snow-quality degradation is likely before or near primary ski window, bias to NO_GO.
+   - If degradation is likely later (after an early powder window), use GO_WITH_RISK and state estimation of latest worthwhile start/cutoff time.
+   - Distinguish "can still score early dry turns" vs "already too warm/wet during main window" explicitly.
+
+5. Priority order
+   - Operational wind constraint > warming/phase timing > snowfall support > thermal quality.
+   - If recommendation could flip, state the flip condition explicitly (for example, faster wind drop or faster warm up or stronger overnight persistence).
+
+Notes:
+- Keep decisions concise and actionable.
+- Keep uncertainty explicit and tied to specific variables.
+- Respect the global time window: tomorrow daytime, tomorrow night precipitation, and up to day-after-tomorrow daytime.
+- Do not request additional images outside this window; if a better window likely exists later, mention it briefly with low-confidence wording.
+- Do not provide backcountry avalanche travel guidance.

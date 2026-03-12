@@ -55,6 +55,15 @@ Thermal structure and precipitation phase assessment including freezing level tr
 WIND_OPERATION_TASK
 Short term wind field and operational impact assessment focusing on alpine lift exposure, wind strength trends, and potential operational disruptions. Note that Whistler alpine normally close if wind speed > 75km/h.
 
+DECISION_TASK
+Cross-task tactical decision synthesis for tomorrow/day-after-tomorrow go-no-go guidance, based on already selected weather tasks.
+Select DECISION_TASK only when a potentially worthwhile powder day may exist within the next 3 days, with BOTH conditions satisfied:
+- RWDI indicates either:
+  - an overnight snowfall window with effective accumulation around 10cm or more before 8am local Whistler time (PST/PDT), or
+  - sustained strong daytime snowfall that could still produce worthwhile mid-mountain conditions.
+- Avalanche Canada graphics support that magnitude/trend signal (not materially contradicting it).
+If these conditions are not met, do not select DECISION_TASK.
+
 OUTPUT FORMAT
 
 Return JSON only using the following format

@@ -502,11 +502,18 @@ def select_pattern_task_images(data_root):
     return [p for d in dates for p in MODEL_GROUPS[2].select(data_root, d)] + images[::max(1, len(images) // 3)]
 
 
+def select_decision_task_images(data_root):
+    start = datetime.now(TIME_ZONE)
+    end = trunc_to_hour(start + timedelta(days=1), 8)
+    return MODEL_GROUPS[0][2].select(data_root, start, end)
+
+
 TASK_DEFINITION = {
     "PATTERN_TASK": select_pattern_task_images,
     "PRECIP_EVENT_TASK": select_precip_images,
     "THERMAL_PHASE_TASK": lambda _: [],
     "WIND_OPERATION_TASK": select_wind_images,
+    "DECISION_TASK": select_decision_task_images,
 }
 
 
@@ -538,10 +545,6 @@ TASK_OUTPUT_JSON_SCHEMA: Dict[str, object] = {
     "schema": {
         "type": "object",
         "properties": {
-            "status_code": {
-                "type": "string",
-                "enum": ["NO_EVENT", "SOME_SNOW", "DRY_POW", "WARM_STORM"],
-            },
             "need": {
                 "type": "array",
                 "items": {
@@ -559,7 +562,7 @@ TASK_OUTPUT_JSON_SCHEMA: Dict[str, object] = {
             },
             "debug": {"type": "string"},
         },
-        "required": ["status_code", "need", "summary", "debug"],
+        "required": ["need", "summary", "debug"],
         "additionalProperties": False,
     },
 }
@@ -949,6 +952,7 @@ class ChatGPTSession:
             raise RuntimeError("OPENAI_API_KEY is not set")
         self.model = model
         self.messages: List[Dict[str, object]] = []
+        self._sent_images: set[Path] = set()
         self.token_used = 0
         self.token_limit = 300000
 
@@ -962,10 +966,8 @@ class ChatGPTSession:
         user_content.append({"type": "text", "text": message})
 
         for img in images:
-            if not img.exists():
-                log(f"Image {img} not found, skip it.")
+            if img in self._sent_images or not img.exists():
                 continue
-
             try:
                 # Build a deterministic image label from local path convention:
                 # .../data/<model>/<run>/<product>/<valid_time>
@@ -998,6 +1000,7 @@ class ChatGPTSession:
                 mime = "image/jpeg"
             img_b64 = base64.b64encode(img.read_bytes()).decode("ascii")
             user_content.append({"type": "image_url", "image_url": {"url": f"data:{mime};base64,{img_b64}"}})
+            self._sent_images.add(img)
 
         self.messages.append({"role": "user", "content": user_content})
 
@@ -1091,7 +1094,6 @@ def call_chatgpt_analysis(args: argparse.Namespace, data_root: Path) -> Dict[str
     else:
         gpt.dump_to("task.txt")
         response = {}
-    log("status_code=" + str(response.get("status_code")))
     log(response.get("need", []))
     log(f"Used tokens: {gpt.token_used}")
     debug = response.get("debug")
