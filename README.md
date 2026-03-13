@@ -8,7 +8,9 @@ English | [中文](#中文)
 
 ## English
 
-Whistler Powder Hunter is a ski-focused weather decision project that turns raw forecast charts into actionable ski decisions. Refer to [An In-Depth Guide to Whistler Weather Forecasts](https://blog.finaltheory.me/en/research/whistler-weather-forecast.html) for more background knowledge.
+Whistler Powder Hunter is a ski-focused weather decision project that turns raw forecast charts into actionable ski decisions. It comes from the idea that modern multimodal LLMs seem remarkably good at extracting structured meteorological meaning from forecast images. When given multiple sources, explicit time labels, and a narrow decision scope, they can often synthesize storm evolution, model convergence, and the risk factors that actually matter for skiing in a way that approaches manual expert adjustment rather than generic consumer weather products. For unstable PNW storm systems, this AI expert system is often more useful than relying on "scam" snowfall websites that compress complex weather dynamics into a few neat but misleading numbers.
+
+Refer to [An In-Depth Guide to Whistler Weather Forecasts](https://blog.finaltheory.me/en/research/whistler-weather-forecast.html) for more background knowledge.
 
 The product is designed around two decision horizons:
 - Tactical decisions (0-72h): first chair / first tracks timing, alpine wind-closure risk, snowline/phase impact on snow quality.
@@ -78,7 +80,9 @@ Reference context for users:
 
 ## 中文
 
-Whistler Powder Hunter 是一个面向滑雪决策的天气分析项目，目标是把「看天气图」变成「可执行的滑雪决策」。请参考[惠斯勒天气预报深度指南](https://blog.finaltheory.me/research/whistler-weather-forecast.html)了解更多背景知识。
+Whistler Powder Hunter 是一个面向滑雪决策的天气分析项目，目标是把「看天气图」变成「可执行的滑雪决策」。如今的多模态 LLM 非常擅长从气象预报图像中提取结构化语义信息。只要给它多个信息源、清晰的时间标签，以及足够收敛的问题范围，它往往就能把风暴系统演变、模型收敛程度和真正影响滑雪决策的风险因素整合起来，表现得接近人工经验修正，而不是普通消费级天气产品那种“看数字说话”。对于 PNW 这种风暴路径和相态变化都很不稳定的区域，这种AI专家系统比单纯把复杂天气变化压缩成几个整齐数字的“诈骗”网站更有参考价值。
+
+请阅读[惠斯勒天气预报深度指南](https://blog.finaltheory.me/research/whistler-weather-forecast.html)了解更多背景知识。
 
 项目核心关注两类问题：
 - 短期战术决策（0-72h）：是否值得顶门、是否可能强风关 alpine、雪线/相态是否恶化雪质。

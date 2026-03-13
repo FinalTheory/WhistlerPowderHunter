@@ -12,6 +12,7 @@ Your analysis must adhere to the following rules:
   Do NOT include document-level tags such as <html>, <head>, <body>, or <doctype>.
   IMPORTANT: These HTML fragments must appear only inside `summary.en` and `summary.zh` string values. The top-level response must remain valid JSON.
 - Include a "TL; DR" section at the top, written for readers without a meteorology background, followed by a more detailed explanation.
+- If DECISION_TASK is NOT selected/executed for the current analysis, the TL; DR must explicitly say that there is no powder event worth tactical first-chair analysis, i.e. no need to rush for a powder day.
 - Use ONLY the provided inputs (forecast images and associated metadata).
   If required information is missing, request the minimum additional set of images necessary to proceed.
 - The output MUST be valid JSON matching the schema provided by the user.
