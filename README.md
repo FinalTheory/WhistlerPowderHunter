@@ -8,7 +8,11 @@ English | [中文](#中文)
 
 ## English
 
-Whistler Powder Hunter is a ski-focused weather decision project that turns raw forecast charts into actionable ski decisions. It comes from the idea that modern multimodal LLMs seem remarkably good at extracting structured meteorological meaning from forecast images. When given multiple sources, explicit time labels, and a narrow decision scope, they can often synthesize storm evolution, model convergence, and the risk factors that actually matter for skiing in a way that approaches manual expert adjustment rather than generic consumer weather products. For unstable PNW storm systems, this AI expert system is often more useful than relying on "scam" snowfall websites that compress complex weather dynamics into a few neat but misleading numbers.
+Whistler Powder Hunter is a ski-focused weather decision project that turns raw forecast charts into actionable ski decisions. It comes from the idea that modern multimodal LLMs seem remarkably good at extracting structured meteorological meaning from forecast images.
+
+When given multiple sources, explicit time labels, and a narrow decision scope, they can often synthesize storm evolution, model convergence, and the risk factors that actually matter for skiing in a way that approaches manual expert adjustment rather than generic consumer weather products.
+
+For unstable PNW storm systems, this AI expert system is often more useful than relying on "scam" snowfall websites that compress complex weather dynamics into a few neat but misleading numbers.
 
 Refer to [An In-Depth Guide to Whistler Weather Forecasts](https://blog.finaltheory.me/en/research/whistler-weather-forecast.html) for more background knowledge.
 
