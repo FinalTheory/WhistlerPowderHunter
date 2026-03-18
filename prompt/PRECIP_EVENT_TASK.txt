@@ -9,6 +9,7 @@ Inputs:
 - Regional precipitation graphics (e.g., 6-hour QPF / precipitation type / 1000-500 mb thickness).
 - Large-scale background fields (e.g., 500 mb height or anomaly) if necessary.
 - Multiple models may be provided, with uneven forecast length coverage across UTC times.
+- Recent satellite imagery may be provided for the past few hours as an observational consistency check.
 
 Goal:
 Assess whether evolving intensity, temperature, or model divergence could materially change snow quality or usability.
@@ -30,11 +31,17 @@ Analysis focus:
    - Do models agree on timing, intensity envelope, and thermal structure?
    - Identify whether differences are minor (timing/placement noise) or structural (pattern-level disagreement).
 
-4. Decision relevance
+4. Satellite consistency check (if recent satellite imagery is provided)
+   - Use past ~3h satellite evolution only to assess whether the observed cloud shield / frontal band is moving in a way that is broadly consistent with the forecast.
+   - Focus on whether the storm system appears FASTER, SLOWER, or DISPLACED relative to the short-term forecast signal.
+   - Use this only to refine short-horizon precipitation persistence and timing at Whistler area over the next ~6-12h.
+   - Do NOT use satellite imagery alone to infer precise snowfall totals or rain-snow phase.
+
+5. Decision relevance
    - Is this shaping into a "nice refresh", "meh dusting", or "potentially underrated" event?
    - Explicitly state what would need to change for this event to upgrade or downgrade.
 
-5. RWDI snowfall number consistency check
+6. RWDI snowfall number consistency check
    - Extract RWDI snowfall amounts for the relevant period (if provided in synopsis/day cards).
    - Compare RWDI values against multi-model trend consensus, not single-frame peaks.
    - Rate RWDI number consistency using:

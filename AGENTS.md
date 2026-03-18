@@ -3,3 +3,4 @@
 - For uncertain or undefined parts, leave explicit placeholders (for example: `TODO`, `pass`, or empty stubs) instead of guessing behavior.
 - Prefer explicit arguments at call sites; avoid default parameters unless there is a clear and stable reason.
 - When a default parameter is necessary, document why that default is safe and intentional.
+- all import should be placed at start of source file.

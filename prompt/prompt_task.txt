@@ -85,6 +85,7 @@ Interpretation rules:
   - Or evolving in a DIFFERENT direction (e.g., warming instead of cooling, wind strengthening vs weakening).
 - Focus on trend timing and direction, not exact numeric matching.
 - Any detected divergence should be clearly highlighted in the output, as it may affect short-term confidence and monitoring frequency.
+- Sensor temperature data is also used to assess snow-quality risk. If a mid-mountain station such as Pig Alley remains persistently above 0C during an active or recent snowfall window, treat that as strong evidence for wet snow / degraded snow quality rather than dry powder.
 
 Sensor stations data format:
 
@@ -101,11 +102,20 @@ Parsing rules:
 - Station names imply relative terrain exposure and elevation:
   - "peak", "harmony", "symphony", "horstman"(7th heaven top): exposed alpine
   - "roundhouse", "rendezvous": upper to mid-mountain
-  - "crystal": lower or more sheltered terrain
+  - "pigalley": location of snow ruler, refers to more sheltered terrain in mid-mountain and below
 - Use the reverse-time ordering when computing trends (e.g., increasing wind means values grow when moving forward in time, i.e., from the end of the list toward the start).
 - Do not assume missing metadata (elevation/coordinates) unless explicitly provided.
 
 {{SENSOR_DATA}}
+
+======
+
+Alpine Lifts Open History
+
+- The data is ordered from today backward over the past few days (most recent day first).
+- Use this together with wind sensor observations as real-world operational context to help assess whether alpine lifts are likely to open tomorrow, especially under marginal or wind-sensitive setups.
+
+{{LIFT_HISTORY}}
 
 ======
 
