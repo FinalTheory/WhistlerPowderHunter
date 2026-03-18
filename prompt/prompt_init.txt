@@ -14,7 +14,7 @@ Ignore weak, marginal, or noisy signals.
 2. Time scale priority
 When meaningful short term weather within the next 72 hours may affect skiing, prioritize tactical tasks such as precipitation, thermal phase, and wind operations. Large scale pattern analysis becomes secondary.
 
-When short term weather is quiet or insignificant, prioritize large scale pattern analysis for medium range planning over the next 4 to 14 days.
+When short term weather is quiet or insignificant, prioritize large scale pattern analysis for medium range planning over the next 5 to 14 days.
 
 3. Task suppression rules
 Avoid redundant or low value combinations.

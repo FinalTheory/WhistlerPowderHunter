@@ -12,7 +12,7 @@ Goal:
 Assess whether the current synoptic-scale background favors a snow-free regime and whether that regime is likely to persist.
 Specifically:
 - Classify the current background state as RIDGE, TROUGH, or TRANSITION.
-- Evaluate background pattern stability over the next 7–14 days.
+- Evaluate background pattern stability over the next 5–14 days.
 - Identify whether there are credible signals of a pattern change.
 - Estimate a model agreement score in the levels of LOW - MED - HIGH.
 
@@ -20,7 +20,7 @@ Heuristics:
 - Use 500mb height anomalies as the primary diagnostic for background state and trend.
 - Persistent positive height anomalies over the PNW indicate a RIDGE; persistent negative anomalies indicate a TROUGH.
 - Weakening anomalies, displacement, or sign changes indicate a TRANSITION.
-- For the 7–14 day window:
+- For the 5–14 day window:
   - STABLE: anomaly pattern remains coherent with little positional or amplitude change.
   - UNSTABLE: increasing spread, weakening, or loss of coherence.
   - SHIFTING: systematic displacement, erosion, or sign reversal.

@@ -18,7 +18,14 @@ Refer to [An In-Depth Guide to Whistler Weather Forecasts](https://blog.finalthe
 
 The product is designed around two decision horizons:
 - Tactical decisions (0-72h): first chair / first tracks timing, alpine wind-closure risk, snowline/phase impact on snow quality.
-- Strategic planning (4-14d): whether a persistent dry regime is likely to break and when.
+- Strategic planning (5-14d): whether a persistent dry regime is likely to break and when.
+
+### How Is This Project Different From OpenSnow?
+
+- At its core, this project is a local expert built specifically for Whistler, not a generic forecast portal covering many resorts. The goal is not broader coverage; it is to understand one mountain better.
+- OpenSnow also uses multiple models, but many of its multi-model views still collapse the problem into single-point numbers. In the PNW, that is often not enough. A temperature plume scattering around 0C may look information-rich, but when snow quality depends on small warm/cold shifts, the real question is not just that models disagree. The real question is which evolution is actually more plausible for Whistler. Single-point output does not answer that well.
+- This project explicitly uses local heuristics that are more useful in Whistler, such as how 1000-500 mb thickness contours relate in practice to snowline. These are not universal formulas, but for Whistler they are often more decision-relevant than abstract model output.
+- Many of the most useful weather-window judgments live only in the heads of local skiers who chase powder all season. For example: whether a short dry window can still be caught before a broad warm push, what level of wind alpine lifts can realistically tolerate, which storms are technically snowy but still not worth chasing, and when no new snow can still be worth a first-chair push because alpine didn't open the previous day and left carry-over powder behind. If that knowledge is not written down into prompts and decision logic, even a very capable forecast model will only sound smart rather than produce genuinely useful local judgment.
 
 ### Design Approach
 
@@ -91,8 +98,15 @@ Whistler Powder Hunter 是一个面向滑雪决策的天气分析项目，目标
 请阅读[惠斯勒天气预报深度指南](https://blog.finaltheory.me/research/whistler-weather-forecast.html)了解更多背景知识。
 
 项目核心关注两类问题：
-- 短期战术决策（0-72h）：是否值得顶门、是否可能强风关 alpine、雪线/相态是否恶化雪质。
-- 中期规划决策（4-14d）：在持续少雪窗口下，是否存在明确的天气形势转折信号，是否建议规划一趟欧洲/日本旅行。
+- 短期战术决策（0-72h）：是否值得顶门冲粉、是否可能强风关 alpine、雪线/相态是否恶化雪质。
+- 中期规划决策（5-14d）：在持续少雪窗口下，是否存在明确的天气形势转折信号，是否建议规划一趟欧洲/日本旅行。
+
+### 这个项目与 Open Snow 有什么区别？
+
+- 本质上，这个项目就是一个只服务 Whistler 的 local expert，而不是一个覆盖很多雪场的通用预报门户，它的目标是“把一个山头看得更明白”。
+- OpenSnow 当然也做多模型，但其本质上仍然是单点数值展示，对 PNW 来说，这往往不够。比如一个围绕 0C 上下发散的温度面条图，看起来信息量很大，但雪质恰恰就取决于这点上下波动。真正关键的问题不是“模型分散了”，而是“哪种演变对 Whistler 这座山更合理”。单点数值本身回答不了这个问题。
+- 这个项目会显式使用一些只在本地适用的经验规律，例如 1000–500 mb thickness contours 与雪线之间的对应关系。它们不是放之四海而皆准的普适公式，但对 Whistler 的局地判断往往比抽象的模式输出更有决策意义。
+- 很多真正有用的天气窗口经验，只存在于本地常年冲粉雪友的脑子里。比如大范围升温前是否还能抓到一小段干粉窗口、alpine lifts 大概能承受到什么量级的风、什么样的 storm technically 有雪但其实不值得追、没有新雪的时候因为前一天 alpine 没开所以也值得去顶门……这些知识如果不被人工写进 prompt 和 decision logic，再花哨的模型也只能“看起来懂了”，而无法输出真正有用的本地经验。
 
 ### 设计思路
 
