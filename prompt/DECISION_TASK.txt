@@ -75,14 +75,14 @@ Decision logic:
      - sensor evidence showing near or above freezing temperatures at key ski elevations such as Roundhouse, Rendezvous, Symphony, Harmony, or Pig Alley during active or imminent snowfall
      - strong wind likely to prevent meaningful alpine access during the primary ski window
    - Use the 546 dam signal as a thermal proxy, not as a one-frame edge-touch trigger by itself.
-   - In warm atmospheric-river or pineapple-express-type setups, wet snow, mixed snow, or rain-affected upper-mountain snow should default to NO_GO unless there is clear evidence that the primary ski window still remains cold enough for genuinely worthwhile powder quality.
+   - In warm atmospheric-river or pineapple-express-type setups, wet snow, mixed snow, or rain-affected upper-mountain snow should default to NO_GO unless there is unusually strong and specific evidence that the primary ski window still remains cold enough for genuinely worthwhile powder quality.
    - Do not use GO_WITH_RISK when the main ski window is already warm / wet enough that quality is materially degraded before or during the primary ski window.
    - Use GO_WITH_RISK only when there is still a realistic early worthwhile window before degradation or access failure, and that early window is still likely to offer dry-enough powder rather than dense wet storm snow.
    - Distinguish "can still score early dry turns" vs "already too warm / wet during main window" explicitly.
-   - In warm atmospheric-river / pineapple-express-type setups, explicitly test for a narrow early-morning salvage window before concluding NO_GO.
-   - If such a window is credibly supported by the short-range evidence, use GO_WITH_RISK rather than NO_GO, and explain the timing constraint clearly.
+   - In warm atmospheric-river / pineapple-express-type setups, do not assume a narrow early-morning salvage window exists just because the setup is borderline. Consider it only as a rare exception when short-range evidence explicitly supports it.
+   - If such a window is clearly supported by the short-range evidence, use GO_WITH_RISK rather than NO_GO, and explain the timing constraint clearly.
    - Do not use that salvage-window exception if wind / operational evidence still strongly indicates that meaningful alpine access is unlikely during the same early window; in that case, keep NO_GO.
-   - If such a window is not credibly supported by the short-range evidence, say so clearly and use NO_GO.
+   - If such a window is not clearly supported by the short-range evidence, say so clearly and use NO_GO.
 
 5. Priority order
    - Warming / phase-degradation override > operational wind / access constraint > snowfall support (including preserved carry-over powder).

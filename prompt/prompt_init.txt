@@ -66,10 +66,10 @@ Select DECISION_TASK when ALL of the following are true:
   - an overnight snowfall window with effective accumulation around 10cm or more before 8am local Whistler time (PST/PDT), or
   - sustained snowfall with a realistic chance of preserving worthwhile dry-snow quality into the primary ski window, or
   - recent observed snowfall statistics show meaningful upper-mountain/alpine accumulation from the ongoing or previous days, alpine access was materially limited or closed during that snowfall, and next-day temperature / wind / access trends leave a realistic question of preserved worthwhile powder in the next primary ski window, or
-  - a warm/mixed storm where the exact timing of warming, rain-phase intrusion, or operational loss still leaves plausible uncertainty about a short-lived but worthwhile early-morning upper-mountain/alpine powder window; and Avalanche Canada graphics support that magnitude/timing signal, or at least do not materially rule out that early worthwhile window.
+  - a warm/mixed storm where unusually strong short-range evidence still leaves a realistic question of a short-lived but worthwhile early-morning upper-mountain/alpine powder window; this should be treated as a rare exception rather than a routine scenario, and should be selected only when Avalanche Canada graphics support that signal rather than merely failing to rule it out.
 
 Important:
-- Do NOT suppress DECISION_TASK merely because the overall setup appears warm, wet, or pineapple-express-like. If there is still credible uncertainty about a narrow early-morning salvage window, keep DECISION_TASK selected so short-range guidance can resolve it.
+- Do NOT suppress DECISION_TASK merely because the overall setup appears warm, wet, or pineapple-express-like. But do not preserve DECISION_TASK by default on the basis of a narrow early-morning salvage window either; treat that as a rare exception and keep DECISION_TASK selected for that reason only when short-range evidence provides a concrete and credible basis.
 - Do NOT select DECISION_TASK merely because skiing may still be possible. Select it only when there is a realistic question of whether the next 2 days are actually worth chasing for powder-oriented timing.
 - Suppress DECISION_TASK when the evidence already strongly indicates that no meaningful powder-oriented window is likely to exist, including during the short first-chair ski window.
 

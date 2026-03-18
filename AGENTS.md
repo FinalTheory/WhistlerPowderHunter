@@ -5,3 +5,4 @@
 - When a default parameter is necessary, document why that default is safe and intentional.
 - all import should be placed at start of source file.
 - Currently the `need` field is only for debugging purpose, we don't implement the logic to feed additional images yet.
+- Try your best not to use default value in function parameters, if you can't figure out, pause and ask for advice. You don't have to give runnable code change every time.

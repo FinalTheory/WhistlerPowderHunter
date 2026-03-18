@@ -126,6 +126,33 @@ Alpine Lifts Open History
 
 ======
 
+RUN_AGAIN LOGIC
+
+- `run_again` is a workflow-level decision, not a task-specific conclusion.
+- The primary goal of the system is still to judge tomorrow and day-after tactical ski value, not to issue a same-day ski recommendation.
+- Set `run_again=true` when one extra same-day afternoon refresh in Whistler local time could materially improve or change the tactical conclusion for tomorrow or day-after-tomorrow.
+- This includes cases where information that may become clearer later today could potentially change tomorrow's powder-oriented decision, when the current morning analysis is still uncertain.
+
+Typical triggers for `run_again=true`:
+- Today alpine access / lift outcome may materially affect tomorrow's carry-over powder potential.
+- A meaningful question remains about whether today's alpine lifts will open in time to track, preserve, or destroy worthwhile snow for tomorrow.
+- Warming, rain-snow boundary, freezing-level trend, or snow-quality degradation timing is still unresolved enough that a same-day afternoon update with newer model run could change tomorrow's tactical conclusion.
+- Wind drop timing, alpine-access timing, or operational recovery timing is still unresolved enough that a same-day afternoon update could change tomorrow's tactical conclusion.
+- A narrow early worthwhile window tomorrow may exist, but treat this as a rare exception rather than a routine trigger. Use `run_again=true` for this reason only when current evidence gives a concrete and credible basis that a same-day update could realistically confirm or eliminate that window.
+
+Suppression rules for `run_again=false`:
+- If the current evidence already strongly supports a stable conclusion, and a same-day afternoon refresh is unlikely to change tomorrow or day-after-tomorrow tactical guidance, keep `run_again=false`.
+- If the setup is already a clear NO_GO because there is neither a meaningful precipitation event ahead nor any realistic powder-supporting snow signal from recent days / carry-over potential, keep `run_again=false`.
+- If the setup is already a clear warm / wet / mixed-phase NO_GO, and later same-day data is unlikely to restore a worthwhile powder window, keep `run_again=false`.
+- In warm atmospheric-river / pineapple-express-type setups, if current evidence already shows freezing levels near or above alpine, or explicit wet-snow / rain-snow-mix guidance in ski-relevant terrain, do NOT run again merely to refine a speculative salvage window.
+- If the setup is already a clearly worthwhile GO with little sensitivity to same-day operational or thermal changes, keep `run_again=false`.
+
+Important:
+- Do not require certainty before using `run_again=true`. If later same-day information has a realistic chance to change the powder-oriented decision, `run_again=true` is appropriate.
+- `run_again` is about whether later same-day updates may materially improve tomorrow-focused decision quality, not about whether today's weather is interesting on its own.
+
+======
+
 OUTPUT DEFINITION
 
 Forget ANY previous output schema. From now on, you MUST follow the new schema below.
@@ -140,6 +167,7 @@ The response format is strictly defined as:
 
 {
   "need": ["data/<model>/<run_time>/<product>/<filename>", ...],
+  "run_again": true | false,
   "summary": {
     "en": "analysis result in English...",
     "zh": "analysis result in Chinese..."
@@ -149,9 +177,10 @@ The response format is strictly defined as:
 
 Rules:
 
-1. "need" and "summary" MUST both be present in every response.
+1. "need", "run_again", and "summary" MUST all be present in every response.
    - Use "need" to list additional images that would reduce uncertainty.
    - If no additional images are needed, set "need" to an empty array [].
+   - Use "run_again" according to the dedicated RUN_AGAIN LOGIC section above.
    - Use "summary" to provide the best current assessment from already provided inputs.
    - Even when "need" is non-empty, still provide a complete current "summary".
 

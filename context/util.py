@@ -30,11 +30,16 @@ def format_generated_at_pst() -> str:
     return now_pst.strftime("%Y-%m-%d %H:%M %Z")
 
 
-def seconds_until_next_run(now_utc: Optional[datetime] = None) -> int:
-    now = (now_utc or datetime.now(timezone.utc)).astimezone(TIME_ZONE)
-    target = now.replace(hour=18, minute=0, second=0, microsecond=0)
-    if now >= target:
-        target += timedelta(days=1)
+def seconds_until_next_run(run_again: bool) -> int:
+    now = datetime.now(timezone.utc).astimezone(TIME_ZONE)
+    morning_target = now.replace(hour=9, minute=0, second=0, microsecond=0)
+    afternoon_target = now.replace(hour=16, minute=0, second=0, microsecond=0)
+    if now < morning_target:
+        target = morning_target
+    elif run_again and now < afternoon_target:
+        target = afternoon_target
+    else:
+        target = morning_target + timedelta(days=1)
     return max(1, int((target - now).total_seconds()))
 
 

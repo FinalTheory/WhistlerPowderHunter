@@ -28,11 +28,12 @@ def main() -> None:
         return
 
     while True:
+        run_again = False
         try:
-            run_analysis(args)
+            run_again = run_analysis(args)
         except Exception:
             log(traceback.format_exc())
-        sleep_seconds = seconds_until_next_run()
+        sleep_seconds = seconds_until_next_run(run_again)
         next_run = datetime.now(timezone.utc).astimezone(TIME_ZONE) + timedelta(seconds=sleep_seconds)
         log(f"Next run scheduled at {next_run.strftime('%Y-%m-%d %H:%M %Z')} ({sleep_seconds}s)")
         time.sleep(sleep_seconds)

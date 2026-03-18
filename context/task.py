@@ -11,7 +11,7 @@ def select_init_images(data_root: Path) -> List[Path]:
     now = datetime.now()
     model = MODEL_GROUPS[0][0]
     return (
-        model.select(data_root, now, now + timedelta(days=1))[:2]
+        model.select(data_root, now, now + timedelta(days=1))[:3]
         + model.select(data_root, now + timedelta(days=1))
         + model.select(data_root, now + timedelta(days=2))
     )

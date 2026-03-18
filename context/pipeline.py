@@ -1,6 +1,6 @@
 import argparse
 from pathlib import Path
-from typing import Dict
+from typing import Dict, Tuple
 
 from context.constant import PROMPT_BASE_DIR
 from context.download import download_all_models
@@ -33,6 +33,7 @@ TASK_OUTPUT_JSON_SCHEMA: Dict[str, object] = {
         "type": "object",
         "properties": {
             "need": {"type": "array", "items": {"type": "string"}},
+            "run_again": {"type": "boolean"},
             "summary": {
                 "type": "object",
                 "properties": {"en": {"type": "string"}, "zh": {"type": "string"}},
@@ -41,13 +42,13 @@ TASK_OUTPUT_JSON_SCHEMA: Dict[str, object] = {
             },
             "debug": {"type": "string"},
         },
-        "required": ["need", "summary", "debug"],
+        "required": ["need", "run_again", "summary", "debug"],
         "additionalProperties": False,
     },
 }
 
 
-def call_chatgpt_analysis(args: argparse.Namespace, data_root: Path) -> Dict[str, str]:
+def call_chatgpt_analysis(args: argparse.Namespace, data_root: Path) -> Tuple[Dict[str, str], bool]:
     init_images = select_init_images(data_root)
     gpt = ChatGPTSession("gpt-5.2", data_root=data_root)
     gpt.append_prompt(build_router_prompt())
@@ -77,16 +78,18 @@ def call_chatgpt_analysis(args: argparse.Namespace, data_root: Path) -> Dict[str
     log(f"Used tokens: {gpt.token_used}")
     if debug := response.get("debug"):
         log(debug)
-    return response.get("summary", {})
+    return response.get("summary", {}), bool(response.get("run_again", False))
 
 
-def run_analysis(args: argparse.Namespace) -> None:
+def run_analysis(args: argparse.Namespace) -> bool:
     data_root = args.out / "data"
     for model in MODELS:
         model.clear_cached_plan()
     prune_old_runs(data_root, days=2)
     download_all_models(models=MODELS, output_dir=data_root, workers=args.workers, overwrite=False)
-    summary = call_chatgpt_analysis(args, data_root)
+    summary, run_again = call_chatgpt_analysis(args, data_root)
     index_path = args.out / "index.html"
     render_viewer_html(build_groups_payload(data_root), summary, format_generated_at_pst(), index_path)
+    log(f"Run again: {run_again}")
     log(f"Rendered to {index_path}")
+    return run_again

@@ -384,7 +384,7 @@ MODEL_GROUPS: List[ModelGroup] = [
         ],
     ),
     ModelGroup(
-        name="Wind Speed",
+        name="Wind Risk",
         models=[
             PivotalWeatherModel("rdps", "700wh", "ca_w", annotate=WHISTLER_REGIONAL_LOCATION),
             PivotalWeatherModel("nam", "700wh", "ca_w", annotate=WHISTLER_REGIONAL_LOCATION),
