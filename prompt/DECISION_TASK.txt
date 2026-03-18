@@ -9,7 +9,8 @@ This task is optional and should be included only when the system needs explicit
 Inputs:
 - Outputs/signals from other selected tasks.
 - RWDI synopsis and provided model/sensor context already in conversation.
-- HRDPS hourly frames from latest run time to next local 08:00 (Whistler PST/PDT) are already provided for DECISION_TASK in the current conversation context.
+- Recent observed snowfall statistics and recent alpine lift/opening history.
+- HRDPS hourly frames from latest run time to next local 11:00 (Whistler PST/PDT) are already provided for DECISION_TASK in the current conversation context.
 
 Goal:
 Provide clear tactical decisions for:
@@ -35,6 +36,7 @@ Execution rules:
 - In each line, put the conclusion first and the note in parentheses after it.
 - Keep each note short and focused on the 1-3 most decision-relevant drivers only.
 - Use the overnight-to-next-local-08:00 evolution as primary evidence for first-chair timing and tomorrow go/no-go.
+- Also treat recently accumulated but not meaningfully accessed (due to alpine lifts closed) powder as valid evidence when evaluating the next primary ski window.
 - Define the primary ski window for each target day as local first-chair through late morning (roughly 08:00 to about 12:30 local Whistler time), unless the evidence clearly supports a later worthwhile powder window.
 - Do not request additional HRDPS frames inside the provided time window unless a specific key frame is missing or unreadable.
 - State status semantics consistently:
@@ -47,17 +49,22 @@ Execution rules:
 - If an early start is required because of warming, rain, rising snow line, rapid snow-quality degradation, or likely access loss later in the morning, do NOT invent a new status; keep the status as GO_WITH_RISK and explain the timing requirement in the note.
 
 Decision logic:
-1. No meaningful snowfall event
-   - If no meaningful snowfall signal exists, default to NO_GO for tactical powder decisions.
+1. Snow support requirement
+   - If there is neither meaningful new snowfall support nor credible preserved carry-over powder support, default to NO_GO for tactical powder decisions.
+   - If expected snowfall plus any credibly preserved carry-over snow is still unlikely to support roughly 10cm+ of dry-enough snow in ski-relevant terrain by the primary window, bias toward NO_GO.
+   - Wet or rain-affected snow at mid-mountain does not by itself justify a powder-oriented recommendation.
    - This task is only for powder-oriented first-chair timing, not general resort-day enjoyment planning.
 
-2. Wind-first operational constraint
+2. Carry-over preserved powder support
+   - Treat recently accumulated but not meaningfully accessed powder as valid snow support for the next primary ski window.
+   - If substantial snow has already fallen in ski-relevant terrain, alpine access was materially limited or closed during that snowfall, and temperature / phase remain supportive of preservation into the next primary window, do NOT default to NO_GO merely because additional overnight snowfall is limited.
+   - If alpine access is likely to improve enough for a broadly worthwhile primary ski window, this carry-over setup can justify GO.
+   - If preserved powder quality still looks worthwhile but access timing is less certain or narrower, use GO_WITH_RISK.
+   - Do not upgrade on this basis if warming, rain, settlement, crusting, or continued operational restriction is likely to materially degrade the opportunity before or during the primary ski window.
+
+3. Wind-first operational constraint
    - If strong wind is likely to shut or severely limit alpine through most of the primary ski window, default to NO_GO unless there is clear evidence of a short early alpine-access window that still preserves worthwhile powder quality.
    - If wind risk is elevated but likely improves early enough to preserve a meaningful part of the primary ski window, GO or GO_WITH_RISK may be used with explicit timing caveat.
-
-3. Snow support threshold
-   - If expected snowfall is unlikely to support roughly 10cm+ of dry-enough snow in ski-relevant terrain by the primary window, bias toward NO_GO.
-   - Wet or rain-affected snow at mid-mountain does not by itself justify a powder-oriented recommendation.
 
 4. Warming / phase-degradation override
    - Treat warming / phase degradation as a hard negative override for this task.
@@ -72,9 +79,13 @@ Decision logic:
    - Do not use GO_WITH_RISK when the main ski window is already warm / wet enough that quality is materially degraded before or during the primary ski window.
    - Use GO_WITH_RISK only when there is still a realistic early worthwhile window before degradation or access failure, and that early window is still likely to offer dry-enough powder rather than dense wet storm snow.
    - Distinguish "can still score early dry turns" vs "already too warm / wet during main window" explicitly.
+   - In warm atmospheric-river / pineapple-express-type setups, explicitly test for a narrow early-morning salvage window before concluding NO_GO.
+   - If such a window is credibly supported by the short-range evidence, use GO_WITH_RISK rather than NO_GO, and explain the timing constraint clearly.
+   - Do not use that salvage-window exception if wind / operational evidence still strongly indicates that meaningful alpine access is unlikely during the same early window; in that case, keep NO_GO.
+   - If such a window is not credibly supported by the short-range evidence, say so clearly and use NO_GO.
 
 5. Priority order
-   - Warming / phase-degradation override > operational wind / access constraint > snowfall support.
+   - Warming / phase-degradation override > operational wind / access constraint > snowfall support (including preserved carry-over powder).
    - If recommendation could flip, state the flip condition explicitly (for example, faster wind drop or faster warm up or stronger overnight persistence).
 
 Notes:

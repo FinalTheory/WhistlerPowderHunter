@@ -75,7 +75,8 @@ def fetch_rwdi_forecast(url: str = "https://www.whistlerpeak.com/forecast/block-
 
     return {"synopsis": synopsis_text, "days": days}
 
-def fetch_lift_history(url: str = "https://whistlerpeak.com/lift-history/read_json_switch.php", keep_days: int = 3) -> List[Dict[str, object]]:
+
+def fetch_lift_history(url: str = "https://whistlerpeak.com/lift-history/read_json_switch.php", keep_days: int = 5) -> List[Dict[str, object]]:
     def _cell_text(div):
         parts = [" ".join(s.strip().split()) for s in div.stripped_strings]
         return " ".join(p for p in parts if p)
@@ -128,4 +129,32 @@ def fetch_lift_history(url: str = "https://whistlerpeak.com/lift-history/read_js
 
         if lifts:
             out.append({"day": day_label, "lifts": lifts})
+
+    recent_snow_history = list(reversed(fetch_snow_history()[-keep_days:]))
+
+    for day_entry, snow_report in zip(out, recent_snow_history):
+        day_entry["snow_report"] = snow_report
     return out
+
+
+def fetch_snow_history(url: str = "https://whistlerpeak.com/get_chart_data.php") -> List[str]:
+    def _format_cm(value: object) -> str:
+        return f"{value:g}cm" if isinstance(value, (int, float)) else f"{str(value).strip()}cm"
+
+    headers = dict(DEFAULT_HEADERS)
+    resp = requests.get(url, headers=headers, timeout=10)
+    if resp.status_code != 200:
+        raise RuntimeError(f"Snow history fetch failed: status {resp.status_code}")
+
+    data = resp.json()
+    dates = data.get("dates")
+    snowfall = data.get("snowfall")
+    base = data.get("base")
+    if len(dates) != len(snowfall) or len(dates) != len(base):
+        raise RuntimeError("Snow history parse failure: dates/snowfall/base length mismatch")
+
+    history: List[str] = []
+    for date, snow_value, base_value in zip(dates, snowfall, base):
+        date_text = str(date).strip()
+        history.append(f"{date_text}: {_format_cm(snow_value)} new snow, {_format_cm(base_value)} base")
+    return history

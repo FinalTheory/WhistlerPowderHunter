@@ -1,7 +1,12 @@
+from datetime import datetime
 from typing import Dict
 
-from context.constant import INIT_PROMPT_PATH, PRODUCT_META, TASK_PROMPT_PATH
-from context.whistler import fetch_sensor_data, fetch_rwdi_forecast, fetch_lift_history
+from context.constant import INIT_PROMPT_PATH, PRODUCT_META, TASK_PROMPT_PATH, TIME_ZONE
+from context.whistler import (
+    fetch_lift_history,
+    fetch_rwdi_forecast,
+    fetch_sensor_data,
+)
 
 
 def build_task_prompt(model_data: Dict[str, object]) -> str:
@@ -16,9 +21,14 @@ def build_task_prompt(model_data: Dict[str, object]) -> str:
 
 
 def build_router_body() -> str:
+    local_today = datetime.now(TIME_ZONE).strftime("%Y-%m-%d")
     return f"""
 
 ======
+
+Reference date: today in Whistler local time is {local_today}.
+Snow/lift history includes today and the previous local days.
+All tactical decisions should be made for the next 2 local days after this reference date.
 
 Now, we can start with given RWDI forecast information:
 

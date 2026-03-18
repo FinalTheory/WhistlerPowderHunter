@@ -29,6 +29,7 @@ System structure:
 The backend architecture is scheduler + specialist analysis:
 - Stage 1 (routing): choose which tasks are worth running from RWDI synopsis and Avalanche Canada forecast images.
 - Stage 2 (analysis): request only the minimum required images and produce bilingual conclusions.
+- Observed context such as sensor data, lift history, and snowfall/base history will also be injected to help identify carry-over powder setups.
 
 Task dimensions:
 - [`PATTERN_TASK`](prompt/PATTERN_TASK.txt)
@@ -102,6 +103,7 @@ Whistler Powder Hunter 是一个面向滑雪决策的天气分析项目，目标
 后端系统采用任务调度 + 专项分析的思路：
 - 第一层（调度）：根据 RWDI 文本和 Avalanche Canada 图像，选择最值得分析的任务。
 - 第二层（分析）：按任务请求最小必要图像，输入到LLM，输出中英文气象总结与更新频率建议。
+- 系统也会注入运营数据，例如传感器读数、缆车运行历史和 snowfall/base history，用来辅助识别 carry-over powder 场景。
 
 当前任务维度：
 - [`PATTERN_TASK`](prompt/PATTERN_TASK.txt)

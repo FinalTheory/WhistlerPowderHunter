@@ -58,14 +58,20 @@ Short term wind field and operational impact assessment focusing on alpine lift 
 
 DECISION_TASK
 Cross-task tactical decision synthesis for tomorrow/day-after-tomorrow go-no-go guidance, based on already selected weather tasks.
-Select DECISION_TASK only when a potentially worthwhile powder day may exist within the next 3 days, with BOTH conditions satisfied:
-- RWDI indicates either:
+Use this task only for powder-oriented tactical timing, not for generic "is skiing possible" discussion.
+
+Select DECISION_TASK when ALL of the following are true:
+- The next 2 days contain a realistic powder-chasing timing question, rather than merely a skiable but low-value warm storm.
+- RWDI indicates at least one of the following:
   - an overnight snowfall window with effective accumulation around 10cm or more before 8am local Whistler time (PST/PDT), or
-  - sustained snowfall with a realistic chance of preserving worthwhile dry-snow quality into the primary ski window.
-- Avalanche Canada graphics support that magnitude/trend signal (not materially contradicting it).
-- There is no strong warm-storm signal already suggesting wet snow, upper-mountain rain-affected snow quality, or a freezing level rising toward/above alpine during the primary ski window.
+  - sustained snowfall with a realistic chance of preserving worthwhile dry-snow quality into the primary ski window, or
+  - recent observed snowfall statistics show meaningful upper-mountain/alpine accumulation from the ongoing or previous days, alpine access was materially limited or closed during that snowfall, and next-day temperature / wind / access trends leave a realistic question of preserved worthwhile powder in the next primary ski window, or
+  - a warm/mixed storm where the exact timing of warming, rain-phase intrusion, or operational loss still leaves plausible uncertainty about a short-lived but worthwhile early-morning upper-mountain/alpine powder window; and Avalanche Canada graphics support that magnitude/timing signal, or at least do not materially rule out that early worthwhile window.
+
+Important:
+- Do NOT suppress DECISION_TASK merely because the overall setup appears warm, wet, or pineapple-express-like. If there is still credible uncertainty about a narrow early-morning salvage window, keep DECISION_TASK selected so short-range guidance can resolve it.
 - Do NOT select DECISION_TASK merely because skiing may still be possible. Select it only when there is a realistic question of whether the next 2 days are actually worth chasing for powder-oriented timing.
-If these conditions are not met, do not select DECISION_TASK.
+- Suppress DECISION_TASK when the evidence already strongly indicates that no meaningful powder-oriented window is likely to exist, including during the short first-chair ski window.
 
 OUTPUT FORMAT
 
