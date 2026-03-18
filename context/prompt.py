@@ -21,7 +21,7 @@ def build_task_prompt(model_data: Dict[str, object]) -> str:
 
 
 def build_router_body() -> str:
-    local_today = datetime.now(TIME_ZONE).strftime("%Y-%m-%d")
+    local_today = datetime.now(TIME_ZONE).strftime('%Y-%m-%d %H:%M %Z')
     return f"""
 
 ======
