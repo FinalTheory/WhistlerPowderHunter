@@ -3,7 +3,7 @@
 Task: WIND_OPERATION_TASK
 
 Condition:
-Trigger this task ONLY when a short-term weather system is present or approaching, and wind may be a limiting factor for alpine lift operations within the next 24 hours.
+Trigger this task ONLY when a short-term weather system is present or approaching, and wind may be a limiting factor for alpine lift operations within roughly the next 24-36 hours.
 
 Inputs:
 - Short-range wind field graphics, with 700 mb preferred.
@@ -11,11 +11,11 @@ Inputs:
 - Forecast coverage across models and UTC times may be uneven.
 
 Goal:
-Assess short-term (0–24h) wind speed trends over Whistler alpine terrain and determine whether wind poses a credible risk to alpine lift operations.
-Refer to Whistler sensor station data to determine whether real-world temperature and wind trends are consistent with model expectations.
+Assess short-term (roughly 0-36h) wind speed trends over Whistler alpine terrain and determine whether wind poses a credible risk to alpine lift operations.
+Refer to Whistler sensor station data and recent alpine lift history to determine whether real-world wind/operations trends are consistent with model expectations.
 
 Analysis focus:
-1. Wind speed trend (0–24h)
+1. Wind speed trend (roughly 0-36h)
    - Is wind strengthening, weakening, or steady?
    - Approximate timing of peak winds.
    - Distinguish brief spikes from sustained high-wind periods.
@@ -26,7 +26,7 @@ Analysis focus:
      - MARGINAL: possible delays or partial openings
      - HIGH: likely alpine closures
    - Consider wind magnitude, duration, and persistence.
-   - Note that Whistler alpine normally close if wind speed > 75km/h.
+   - Note that Whistler alpine normally close if wind speed > 75km/h, especially when sustained rather than isolated gust-driven spikes.
 
 3. Model agreement
    - Do models agree on peak wind magnitude and timing?
@@ -39,4 +39,5 @@ Decision logic:
 
 Notes:
 - Focus on trend and decision relevance, not exact wind speed values.
+- If recent lift history already shows non-openings of major alpine lifts under observed winds, say so explicitly as operational support.
 - Keep uncertainty explicit and conservative.

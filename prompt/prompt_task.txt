@@ -85,7 +85,8 @@ Interpretation rules:
   - Or evolving in a DIFFERENT direction (e.g., warming instead of cooling, wind strengthening vs weakening).
 - Focus on trend timing and direction, not exact numeric matching.
 - Any detected divergence should be clearly highlighted in the output, as it may affect short-term confidence and monitoring frequency.
-- Sensor temperature data is also used to assess snow-quality risk. If a mid-mountain station such as Pig Alley remains persistently above 0C during an active or recent snowfall window, treat that as strong evidence for wet snow / degraded snow quality rather than dry powder.
+- Sensor temperature data is also used to assess snow-quality risk. If Pig Alley remains persistently above 0C during an active or recent snowfall window, treat that as strong evidence for wet snow / degraded snow quality rather than dry powder.
+- Likewise, if key ski-elevation stations such as Roundhouse, Rendezvous, Harmony, or Symphony are near or above 0C during active or imminent snowfall, treat that as strong evidence against worthwhile powder quality unless other evidence clearly shows a colder early window.
 
 Sensor stations data format:
 

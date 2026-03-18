@@ -35,7 +35,7 @@ Execution rules:
 - In each line, put the conclusion first and the note in parentheses after it.
 - Keep each note short and focused on the 1-3 most decision-relevant drivers only.
 - Use the overnight-to-next-local-08:00 evolution as primary evidence for first-chair timing and tomorrow go/no-go.
-- Define the primary ski window for each target day as local first-chair through late morning (roughly 08:00 to about 12:30 PST), unless the evidence clearly supports a later worthwhile powder window.
+- Define the primary ski window for each target day as local first-chair through late morning (roughly 08:00 to about 12:30 local Whistler time), unless the evidence clearly supports a later worthwhile powder window.
 - Do not request additional HRDPS frames inside the provided time window unless a specific key frame is missing or unreadable.
 - State status semantics consistently:
   - GO: broadly worthwhile with flexible timing.
@@ -56,7 +56,8 @@ Decision logic:
    - If wind risk is elevated but likely improves early enough to preserve a meaningful part of the primary ski window, GO or GO_WITH_RISK may be used with explicit timing caveat.
 
 3. Snow support threshold
-   - If expected snowfall is unlikely to support roughly 10cm+ at mid-mountain, bias toward NO_GO.
+   - If expected snowfall is unlikely to support roughly 10cm+ of dry-enough snow in ski-relevant terrain by the primary window, bias toward NO_GO.
+   - Wet or rain-affected snow at mid-mountain does not by itself justify a powder-oriented recommendation.
 
 4. Warming / phase-degradation override
    - Treat warming / phase degradation as a hard negative override for this task.
@@ -79,6 +80,7 @@ Decision logic:
 Notes:
 - Keep decisions concise and actionable.
 - Keep uncertainty explicit and tied to specific variables.
+- If a hard negative override is met, do not hedge back toward GO_WITH_RISK merely because raw snowfall amounts are large.
 - Respect the global time window: tomorrow daytime, tomorrow night precipitation, and up to day-after-tomorrow daytime.
 - Do not request additional images outside this window; if a better window likely exists later, mention it briefly with low-confidence wording.
 - Do not provide backcountry avalanche travel guidance.

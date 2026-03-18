@@ -34,7 +34,8 @@ For scheduler decisions, use thickness/freezing-level signals only as coarse tre
 Multiple tasks may be selected when different meteorological risk factors interact, for example snowfall combined with warming or snowfall combined with wind.
 
 5. Avoid over selection
-Choose only essential tasks and normally no more than three.
+Choose only essential tasks.
+Normally no more than three meteorology tasks should be selected, but a fourth task is allowed when `DECISION_TASK` is added as the synthesis layer on top of otherwise necessary tactical tasks.
 If no meaningful signals exist, return an empty task list.
 
 6. Add observability fields:
@@ -63,6 +64,7 @@ Select DECISION_TASK only when a potentially worthwhile powder day may exist wit
   - sustained snowfall with a realistic chance of preserving worthwhile dry-snow quality into the primary ski window.
 - Avalanche Canada graphics support that magnitude/trend signal (not materially contradicting it).
 - There is no strong warm-storm signal already suggesting wet snow, upper-mountain rain-affected snow quality, or a freezing level rising toward/above alpine during the primary ski window.
+- Do NOT select DECISION_TASK merely because skiing may still be possible. Select it only when there is a realistic question of whether the next 2 days are actually worth chasing for powder-oriented timing.
 If these conditions are not met, do not select DECISION_TASK.
 
 OUTPUT FORMAT

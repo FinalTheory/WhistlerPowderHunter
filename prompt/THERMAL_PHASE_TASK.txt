@@ -49,10 +49,12 @@ Analysis focus:
 5. Decision relevance
    - State whether phase trend is improving, degrading, or neutral for near-term ski quality.
    - Highlight what specific change would flip the interpretation (e.g., sustained 546 dam push inland, delayed cooling onset).
-   - If a warm atmospheric-river / pineapple-express-type setup is producing wet snow, mixed rain&snow, or near/above freezing temperatures at key ski elevations, say explicitly that this argues against a worthwhile powder day even if snowfall amounts remain moderate or heavy.
+   - If a warm atmospheric-river / pineapple-express-type setup is producing wet snow, mixed rain/snow, or near/above freezing temperatures at key ski elevations, say explicitly that this argues against a worthwhile powder day even if snowfall amounts remain moderate or heavy.
+   - Keep this task focused on thermal interpretation and quality risk; do not emit final GO / GO_WITH_RISK / NO_GO labels unless DECISION_TASK is also being executed elsewhere.
 
 Decision logic:
 - If thermal structure is stable and clearly cold during precip, finalize without extra image requests.
+- If the already-provided evidence is sufficient to show a warm atmospheric-river / pineapple-express-type setup is already compromising worthwhile powder quality, finalize without requesting extra bridge frames just to pin down the exact transition hour.
 - If phase hinges on a narrow timing boundary or model disagreement, request the minimum additional images needed around the transition window.
 
 Notes:

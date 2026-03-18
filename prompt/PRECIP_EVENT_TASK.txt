@@ -13,7 +13,7 @@ Inputs:
 
 Goal:
 Assess whether evolving intensity, temperature, or model divergence could materially change snow quality or usability.
-Produce a concise, decision-oriented assessment for whether to go to Whistler or continue monitoring the event.
+Produce a concise, decision-oriented assessment of whether the event merits tactical attention or continued monitoring.
 Decide how closely the situation should be monitored.
 Evaluate whether multi-model snowfall trends support or challenge RWDI-provided snowfall numbers, and express a confidence interval for those numbers.
 
@@ -39,6 +39,7 @@ Analysis focus:
 
 5. Decision relevance
    - Is this shaping into a "nice refresh", "meh dusting", or "potentially underrated" event?
+   - Do not confuse raw snowfall amount with powder quality; a warm, wet, or mixed-phase refresh is still a downgrade.
    - Explicitly state what would need to change for this event to upgrade or downgrade.
 
 6. RWDI snowfall number consistency check
@@ -61,7 +62,9 @@ Model confidence:
 
 Guidance:
 - Focus on trends and relative changes, not precise snowfall totals.
+- Do not issue explicit GO / GO_WITH_RISK / NO_GO labels here; leave final tactical labels to DECISION_TASK when that task is selected.
 - Do NOT overstate confidence when lead time is short but models disagree.
+- If the already-provided evidence is sufficient to show a warm, wet, or mixed-phase storm is unlikely to deliver worthwhile powder quality in the decision window, do NOT request extra bridge frames merely to refine the exact downgrade timing.
 - If key uncertainty cannot be resolved with current inputs, request the minimum additional images needed.
 - Keep precipitation assessment within the fixed decision window:
   tomorrow daytime, tomorrow night, and up to daytime of the day after tomorrow.
