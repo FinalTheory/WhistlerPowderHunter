@@ -25,10 +25,18 @@ class RunPlan(NamedTuple):
 
 
 class ModelConfig(ABC):
-    def __init__(self, name: str, product: str, hide: bool, annotate: Optional[Tuple[int, int]] = None) -> None:
+    def __init__(
+        self,
+        name: str,
+        product: str,
+        hide: bool,
+        feed: bool,
+        annotate: Optional[Tuple[int, int]],
+    ) -> None:
         self.name = name
         self.product = product
         self.hide = hide
+        self.feed = feed
         self.annotate = annotate
         self._cached_plan: Optional[RunPlan] = None
 
@@ -98,10 +106,11 @@ class PivotalWeatherModel(ModelConfig):
         product: str,
         region: str,
         hide: bool = False,
+        feed: bool = True,
         run_selector=None,
         annotate: Optional[Tuple[int, int]] = None,
     ) -> None:
-        super().__init__(name, product, hide, annotate=annotate)
+        super().__init__(name, product, hide, feed=feed, annotate=annotate)
         self.region = region
         self.run_selector = run_selector or self.longest_run
 
@@ -225,9 +234,10 @@ class AvalancheCanadaModel(ModelConfig):
         max_forecast_hour: int,
         step_hours: int,
         hide: bool = False,
+        feed: bool = True,
         annotate: Optional[Tuple[int, int]] = None,
     ) -> None:
-        super().__init__(name, product, hide, annotate=annotate)
+        super().__init__(name, product, hide, feed=feed, annotate=annotate)
         self.max_forecast_hour = max_forecast_hour
         self.step_hours = step_hours
 
@@ -290,10 +300,9 @@ class SatelliteImage(ModelConfig):
         product: str,
         lookback_hours: int = 3,
         step_minutes: int = 10,
-        hide: bool = False,
         annotate: Optional[Tuple[int, int]] = None,
     ) -> None:
-        super().__init__(name, product, hide, annotate=annotate)
+        super().__init__(name, product, False, False, annotate=annotate)
         self.lookback_hours = lookback_hours
         self.step_minutes = step_minutes
 
@@ -359,7 +368,7 @@ class ModelGroup:
     def select(self, data_root: Path, start: datetime, end: Optional[datetime] = None) -> List[Path]:
         selected: List[Path] = []
         for model in self.models:
-            if not model.hide:
+            if model.feed:
                 selected.extend(model.select(data_root, start, end))
         return selected
 
@@ -371,7 +380,7 @@ MODEL_GROUPS: List[ModelGroup] = [
             AvalancheCanadaModel("ac_gdps", "AC_GDPS_EPA_clds-th-500hts", max_forecast_hour=144, step_hours=6, annotate=WHISTLER_AC_LOCATION),
             PivotalWeatherModel("rdps", "prateptype-met", "ca_w", annotate=WHISTLER_REGIONAL_LOCATION),
             PivotalWeatherModel("hrdps", "prateptype-met", "ca_w", annotate=WHISTLER_REGIONAL_LOCATION),
-            PivotalWeatherModel("nam", "ref1km_ptype", "ca_w", hide=True, annotate=WHISTLER_REGIONAL_LOCATION),
+            PivotalWeatherModel("nam", "ref1km_ptype", "ca_w", hide=True, feed=False, annotate=WHISTLER_REGIONAL_LOCATION),
         ],
     ),
     ModelGroup(
@@ -380,7 +389,7 @@ MODEL_GROUPS: List[ModelGroup] = [
             PivotalWeatherModel("rdps", "700wh", "ca_w", annotate=WHISTLER_REGIONAL_LOCATION),
             PivotalWeatherModel("nam", "700wh", "ca_w", annotate=WHISTLER_REGIONAL_LOCATION),
             PivotalWeatherModel("hrdps", "700wh", "ca_w", annotate=WHISTLER_REGIONAL_LOCATION),
-            PivotalWeatherModel("gfs", "700wh", "ca_w", hide=True, annotate=WHISTLER_REGIONAL_LOCATION),
+            PivotalWeatherModel("gfs", "700wh", "ca_w", hide=True, feed=False, annotate=WHISTLER_REGIONAL_LOCATION),
         ],
     ),
     ModelGroup(
@@ -388,11 +397,11 @@ MODEL_GROUPS: List[ModelGroup] = [
         models=[
             PivotalWeatherModel("cfs", "500h_anom", "na", annotate=WHISTLER_GLOBAL_LOCATION),
             PivotalWeatherModel("gfs", "500h_anom", "na", annotate=WHISTLER_GLOBAL_LOCATION),
-            PivotalWeatherModel("aigfs", "500h_anom", "na", annotate=WHISTLER_GLOBAL_LOCATION),
+            PivotalWeatherModel("aigfs", "500h_anom", "na", feed=False, annotate=WHISTLER_GLOBAL_LOCATION),
             PivotalWeatherModel("ecmwf_full", "500h_anom", "na", annotate=WHISTLER_GLOBAL_LOCATION),
-            PivotalWeatherModel("ecmwf_aifs", "500h_anom", "na", annotate=WHISTLER_GLOBAL_LOCATION),
+            PivotalWeatherModel("ecmwf_aifs", "500h_anom", "na", feed=False, annotate=WHISTLER_GLOBAL_LOCATION),
             PivotalWeatherModel("gdps", "500h_anom", "na", annotate=WHISTLER_GLOBAL_LOCATION),
-            PivotalWeatherModel("icon", "500h_anom", "na", hide=True, annotate=WHISTLER_GLOBAL_LOCATION),
+            PivotalWeatherModel("icon", "500h_anom", "na", hide=True, feed=False, annotate=WHISTLER_GLOBAL_LOCATION),
         ],
     ),
 ]

@@ -37,6 +37,7 @@ def select_precip_images(data_root: Path) -> List[Path]:
 def select_wind_images(data_root: Path) -> List[Path]:
     start = datetime.now(TIME_ZONE)
     end = trunc_to_hour(start + timedelta(days=1), 15)
+    # all 700wh images from now to tomorrow afternoon
     return (
         MODEL_GROUPS[1][0].select(data_root, start, end)
         + MODEL_GROUPS[1][1].select(data_root, start, end)
@@ -46,14 +47,17 @@ def select_wind_images(data_root: Path) -> List[Path]:
 
 def select_pattern_task_images(data_root: Path) -> List[Path]:
     now = datetime.now(timezone.utc)
+    # Avalanche Canada images, +3d until end, keep 4 images in total
     images = MODEL_GROUPS[0][0].select(data_root, now + timedelta(days=3), now + timedelta(days=30))
+    # 500h_anom after 5, 10, 14 days
     dates = [trunc_to_hour(now + timedelta(days=d), 12) for d in (5, 10, 14)]
     return [p for d in dates for p in MODEL_GROUPS[2].select(data_root, d)] + images[::max(1, len(images) // 3)]
 
 
 def select_decision_task_images(data_root: Path) -> List[Path]:
     start = datetime.now(TIME_ZONE)
-    end = trunc_to_hour(start + timedelta(days=1), 8)
+    end = trunc_to_hour(start + timedelta(days=1), 11)
+    # HRDPS images from now to tomorrow 11am
     return MODEL_GROUPS[0][2].select(data_root, start, end)
 
 

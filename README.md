@@ -31,10 +31,11 @@ The backend architecture is scheduler + specialist analysis:
 - Stage 2 (analysis): request only the minimum required images and produce bilingual conclusions.
 
 Task dimensions:
-- `PATTERN_TASK`
-- `PRECIP_EVENT_TASK`
-- `THERMAL_PHASE_TASK`
-- `WIND_OPERATION_TASK`
+- [`PATTERN_TASK`](prompt/PATTERN_TASK.txt)
+- [`PRECIP_EVENT_TASK`](prompt/PRECIP_EVENT_TASK.txt)
+- [`THERMAL_PHASE_TASK`](prompt/THERMAL_PHASE_TASK.txt)
+- [`WIND_OPERATION_TASK`](prompt/WIND_OPERATION_TASK.txt)
+- [`DECISION_TASK`](prompt/DECISION_TASK.txt)
 
 ### Core Principles
 
@@ -103,10 +104,11 @@ Whistler Powder Hunter 是一个面向滑雪决策的天气分析项目，目标
 - 第二层（分析）：按任务请求最小必要图像，输入到LLM，输出中英文气象总结与更新频率建议。
 
 当前任务维度：
-- `PATTERN_TASK`
-- `PRECIP_EVENT_TASK`
-- `THERMAL_PHASE_TASK`
-- `WIND_OPERATION_TASK`
+- [`PATTERN_TASK`](prompt/PATTERN_TASK.txt)
+- [`PRECIP_EVENT_TASK`](prompt/PRECIP_EVENT_TASK.txt)
+- [`THERMAL_PHASE_TASK`](prompt/THERMAL_PHASE_TASK.txt)
+- [`WIND_OPERATION_TASK`](prompt/WIND_OPERATION_TASK.txt)
+- [`DECISION_TASK`](prompt/DECISION_TASK.txt)
 
 ### 核心原则
 
