@@ -1,4 +1,5 @@
 import base64
+import copy
 import json
 import os
 from pathlib import Path
@@ -103,13 +104,24 @@ class ChatGPTSession:
         return list(self.messages)
 
     def dump_to(self, file_name: str) -> None:
-        def transform(msg: Dict[str, object]) -> Dict[str, object]:
-            if msg["role"] == "user":
-                for content in msg["content"]:
-                    if content["type"] == "image_url":
-                        content["image_url"]["url"] = ""
-            return msg
+        debug_dir = BASE_DIR / "debug"
+        debug_dir.mkdir(parents=True, exist_ok=True)
+        messages = copy.deepcopy([m for m in self.messages if m])
+        image_index = 1
+        for msg in messages:
+            if msg.get("role") != "user":
+                continue
+            for content in msg.get("content", []):
+                if content.get("type") != "image_url":
+                    continue
+                url = content.get("image_url", {}).get("url")
+                if url and url.startswith("data:"):
+                    header, payload = url.split(",", 1)
+                    mime = header.split(";", 1)[0][5:]
+                    suffix = ".jpg" if mime == "image/jpeg" else ".png"
+                    (debug_dir / f"{image_index}{suffix}").write_bytes(base64.b64decode(payload))
+                    image_index += 1
+                content["image_url"]["url"] = ""
 
-        messages = [transform(m) for m in self.messages if m]
-        with open(file_name, "w") as f:
+        with open(debug_dir / Path(file_name).name, "w") as f:
             f.write(json.dumps(messages, indent=2))

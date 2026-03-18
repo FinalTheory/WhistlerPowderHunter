@@ -28,6 +28,7 @@ Analysis focus:
      - MARGINAL_WARM: denser or wetter snow likely, but still mostly snow at key elevations
      - PHASE_RISK: mixed/rain risk or clear quality degradation in key ski zones
    - Explicitly note if rain risk is mostly low-elevation-limited versus extending into upper terrain.
+   - For powder-oriented decisions, dense wet storm snow is a quality downgrade, not a positive snowfall signal.
 
 3. Thickness-based interpretation
    - Use 1000-500 mb thickness contours as trend guidance, not deterministic truth.
@@ -48,6 +49,7 @@ Analysis focus:
 5. Decision relevance
    - State whether phase trend is improving, degrading, or neutral for near-term ski quality.
    - Highlight what specific change would flip the interpretation (e.g., sustained 546 dam push inland, delayed cooling onset).
+   - If a warm atmospheric-river / pineapple-express-type setup is producing wet snow, mixed rain&snow, or near/above freezing temperatures at key ski elevations, say explicitly that this argues against a worthwhile powder day even if snowfall amounts remain moderate or heavy.
 
 Decision logic:
 - If thermal structure is stable and clearly cold during precip, finalize without extra image requests.
@@ -56,4 +58,5 @@ Decision logic:
 Notes:
 - Keep analysis trend-based and conservative; avoid overconfidence in deterministic freezing-level numbers.
 - Do not overemphasize valley/mid-mountain warmth when alpine remains clearly in snow phase.
+- Also do not understate quality degradation when upper-mountain and key ski-elevation sensors are near or above freezing during active precipitation; in that case, emphasize wet-snow / mixed-phase risk clearly.
 - Mention uncertainty explicitly whenever phase classification depends on unresolved short-term timing.

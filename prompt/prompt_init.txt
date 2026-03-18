@@ -60,8 +60,9 @@ Cross-task tactical decision synthesis for tomorrow/day-after-tomorrow go-no-go 
 Select DECISION_TASK only when a potentially worthwhile powder day may exist within the next 3 days, with BOTH conditions satisfied:
 - RWDI indicates either:
   - an overnight snowfall window with effective accumulation around 10cm or more before 8am local Whistler time (PST/PDT), or
-  - sustained strong daytime snowfall that could still produce worthwhile mid-mountain conditions.
+  - sustained snowfall with a realistic chance of preserving worthwhile dry-snow quality into the primary ski window.
 - Avalanche Canada graphics support that magnitude/trend signal (not materially contradicting it).
+- There is no strong warm-storm signal already suggesting wet snow, upper-mountain rain-affected snow quality, or a freezing level rising toward/above alpine during the primary ski window.
 If these conditions are not met, do not select DECISION_TASK.
 
 OUTPUT FORMAT

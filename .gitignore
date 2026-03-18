@@ -2,5 +2,6 @@ data/
 *.pyc
 .DS_Store
 index.html
-/*.txt
 high-level-goal.md
+debug/
+/log.txt
