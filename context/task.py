@@ -56,8 +56,8 @@ def select_pattern_task_images(data_root: Path) -> List[Path]:
 
 def select_decision_task_images(data_root: Path) -> List[Path]:
     start = datetime.now(TIME_ZONE)
-    end = trunc_to_hour(start + timedelta(days=1), 11)
-    # HRDPS images from now to tomorrow 11am
+    end = trunc_to_hour(start + timedelta(days=1), 9)
+    # HRDPS images from now to tomorrow 9am
     return MODEL_GROUPS[0][2].select(data_root, start, end)
 
 

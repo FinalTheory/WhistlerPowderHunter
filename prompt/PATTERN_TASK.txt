@@ -2,14 +2,11 @@
 
 Task: PATTERN_TASK
 
-Condition:
-This task is triggered only when there is high confidence that no meaningful snowfall or snow-producing precipitation is expected in the short term (e.g., next 3-7 days).
-
 Inputs:
 Large-scale circulation diagnostics, primarily 500mb height and 500mb height anomaly sequences from multiple global and regional models (e.g., ECMWF, ECMWF-AIFS, GFS, ICON, GDPS, CFS), focused on the PNW / Whistler region.
 
 Goal:
-Assess whether the current synoptic-scale background favors a snow-free regime and whether that regime is likely to persist.
+Assess whether the current synoptic-scale background favors a snow-free or low-snow regime and whether that regime is likely to persist. This task is diagnostic and medium-range focused rather than a short-term event-analysis task.
 Specifically:
 - Classify the current background state as RIDGE, TROUGH, or TRANSITION.
 - Evaluate background pattern stability over the next 5–14 days.

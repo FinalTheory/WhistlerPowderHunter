@@ -111,21 +111,6 @@ Parsing rules:
 
 ======
 
-Alpine Lifts Open History
-
-- The data is ordered from today backward over the past few days (most recent day first).
-- Use this together with wind sensor observations as real-world operational context to help assess whether alpine lifts are likely to open tomorrow, especially under marginal or wind-sensitive setups.
-- Each daily entry may also include a `snow_report` string indicating if there's new snow on the day.
-- `opened_today` is the key day-level signal: it explicitly indicates whether that lift operated on the day represented by the enclosing entry.
-- If `opened_today` is false, the `opened` and `closed` timestamp strings should be treated only as the most recent recorded opening/closing timestamps for that lift and are NOT guaranteed to be same-day timestamps for the enclosing `day` entry.
-- If `opened_today` is true, treat the `opened` and `closed` timestamps as the operating window for that day, and you may use them to judge whether the lift was meaningfully open or only briefly opened.
-- Therefore, when reasoning about carry-over powder or day-level alpine access, use `opened_today` first, then interpret `opened` / `closed` accordingly.
-- If a lift appears to have operated on that day but only for a very short window (less than 1 hour), treat that as effectively not meaningfully open for carry-over powder / alpine-access reasoning.
-
-{{LIFT_HISTORY}}
-
-======
-
 RUN_AGAIN LOGIC
 
 - `run_again` is a workflow-level decision, not a task-specific conclusion.

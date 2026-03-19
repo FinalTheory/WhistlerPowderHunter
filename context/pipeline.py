@@ -1,6 +1,7 @@
 import argparse
 from pathlib import Path
 from typing import Dict, Tuple
+from datetime import datetime
 
 from context.constant import PROMPT_BASE_DIR
 from context.download import download_all_models
@@ -56,7 +57,6 @@ def call_chatgpt_analysis(args: argparse.Namespace, data_root: Path) -> Tuple[Di
     if not args.no_gpt:
         response = gpt.send(json_schema=TASK_SELECTION_JSON_SCHEMA)
     else:
-        gpt.dump_to("init.txt")
         response = {"tasks": list(TASK_DEFINITION.keys())}
     tasks = response.get("tasks", [])
     if reason := response.get("reason", ""):
@@ -71,8 +71,9 @@ def call_chatgpt_analysis(args: argparse.Namespace, data_root: Path) -> Tuple[Di
             gpt.append(prompt_file.read(), image_paths=TASK_DEFINITION[task](data_root))
     if not args.no_gpt:
         response = gpt.send(json_schema=TASK_OUTPUT_JSON_SCHEMA)
+        gpt.dump_to("run/" + datetime.now().strftime("%Y%m%d%H"))
     else:
-        gpt.dump_to("task.txt")
+        gpt.dump_to("debug")
         response = {}
     log(response.get("need", []))
     log(f"Used tokens: {gpt.token_used}")

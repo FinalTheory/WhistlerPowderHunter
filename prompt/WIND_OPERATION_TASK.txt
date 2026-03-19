@@ -2,16 +2,13 @@
 
 Task: WIND_OPERATION_TASK
 
-Condition:
-Trigger this task ONLY when a short-term weather system is present or approaching, and wind may be a limiting factor for alpine lift operations within roughly the next 24-36 hours.
-
 Inputs:
 - Short-range wind field graphics, with 700 mb preferred.
 - Models may include HRDPS, RDPS, and GFS.
 - Forecast coverage across models and UTC times may be uneven.
 
 Goal:
-Assess short-term (roughly 0-36h) wind speed trends over Whistler alpine terrain and determine whether wind poses a credible risk to alpine lift operations.
+Assess short-term (roughly next 2 days) wind speed trends over Whistler alpine terrain and determine whether wind poses a credible risk to alpine lift operations. Keep this task focused on wind and operational exposure rather than broader precipitation or tactical powder decision synthesis.
 Refer to Whistler sensor station data and recent alpine lift history to determine whether real-world wind/operations trends are consistent with model expectations.
 
 Analysis focus:

@@ -2,9 +2,6 @@
 
 Task: PRECIP_EVENT_TASK
 
-Condition:
-Trigger this task ONLY when a snowfall event is detected in the short term (next 0-72h), but the projected total snowfall is modest and does NOT meet a clear "big powder day" threshold (e.g. not a single-day 30cm+ event).
-
 Inputs:
 - Regional precipitation graphics (e.g., 6-hour QPF / precipitation type / 1000-500 mb thickness).
 - Large-scale background fields (e.g., 500 mb height or anomaly) if necessary.
@@ -12,8 +9,8 @@ Inputs:
 - Recent satellite imagery may be provided for the past few hours as an observational consistency check.
 
 Goal:
-Assess whether evolving intensity, temperature, or model divergence could materially change snow quality or usability.
-Produce a concise, decision-oriented assessment of whether the event merits tactical attention or continued monitoring.
+Assess the short-term precipitation event itself, including timing, intensity evolution, persistence, thermal/phase risk, and whether the event structure supports or undermines ski value.
+Produce a concise, decision-oriented assessment of the event's practical significance and whether it warrants continued monitoring.
 Decide how closely the situation should be monitored.
 Evaluate whether multi-model snowfall trends support or challenge RWDI-provided snowfall numbers, and express a confidence interval for those numbers.
 
@@ -38,7 +35,7 @@ Analysis focus:
    - Do NOT use satellite imagery alone to infer precise snowfall totals or rain-snow phase.
 
 5. Decision relevance
-   - Is this shaping into a "nice refresh", "meh dusting", or "potentially underrated" event?
+   - Is this shaping into a meaningful refresh, a low-value dusting, or a potentially underrated precipitation event?
    - Do not confuse raw snowfall amount with powder quality; a warm, wet, or mixed-phase refresh is still a downgrade.
    - Explicitly state what would need to change for this event to upgrade or downgrade.
 
@@ -62,7 +59,7 @@ Model confidence:
 
 Guidance:
 - Focus on trends and relative changes, not precise snowfall totals.
-- Do not issue explicit GO / GO_WITH_RISK / NO_GO labels here; leave final tactical labels to DECISION_TASK when that task is selected.
+- Do not issue explicit GO / GO_WITH_RISK / NO_GO labels here, and do not turn this task into a substitute for DECISION_TASK. Leave final tactical powder recommendations to DECISION_TASK when that task is selected.
 - Do NOT overstate confidence when lead time is short but models disagree.
 - If the already-provided evidence is sufficient to show a warm, wet, or mixed-phase storm is unlikely to deliver worthwhile powder quality in the decision window, do NOT request extra bridge frames merely to refine the exact downgrade timing.
 - If key uncertainty cannot be resolved with current inputs, request the minimum additional images needed.

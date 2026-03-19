@@ -2,9 +2,6 @@
 
 Task: THERMAL_PHASE_TASK
 
-Condition:
-Trigger this task when precipitation is present or likely in the short term (0-72h), and thermal structure may materially change precipitation phase or snow quality at Whistler ski-relevant elevations.
-
 Inputs:
 - Regional precip-phase graphics with 1000-500 mb thickness preferred.
 - Freezing level / snowline related fields if available.

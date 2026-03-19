@@ -49,12 +49,14 @@ Large scale atmospheric background analysis including ridge and trough dominance
 
 PRECIP_EVENT_TASK
 Detection and structural analysis of precipitation events including intensity evolution, duration, and potential snowfall magnitude.
+Select PRECIP_EVENT_TASK when a short-term precipitation event within the next 72 hours is meteorologically significant for ski decisions, including snowfall events, mixed-phase events, and warm/wet refresh events where timing, persistence, intensity, or event structure still matter.
 
 THERMAL_PHASE_TASK
 Thermal structure and precipitation phase assessment including freezing level trends, snowline elevation, and risk of rain on snow or temperature driven quality degradation.
 
 WIND_OPERATION_TASK
 Short term wind field and operational impact assessment focusing on alpine lift exposure, wind strength trends, and potential operational disruptions. Note that Whistler alpine normally close if wind speed > 75km/h.
+Select WIND_OPERATION_TASK only when wind is a credible decision-relevant constraint on alpine lift operations within roughly the next 2 days, especially when a short-term weather system is present or approaching.
 
 DECISION_TASK
 Cross-task tactical decision synthesis for tomorrow/day-after-tomorrow go-no-go guidance, based on already selected weather tasks.
@@ -72,6 +74,19 @@ Important:
 - Do NOT suppress DECISION_TASK merely because the overall setup appears warm, wet, or pineapple-express-like. But do not preserve DECISION_TASK by default on the basis of a narrow early-morning salvage window either; treat that as a rare exception and keep DECISION_TASK selected for that reason only when short-range evidence provides a concrete and credible basis.
 - Do NOT select DECISION_TASK merely because skiing may still be possible. Select it only when there is a realistic question of whether the next 2 days are actually worth chasing for powder-oriented timing.
 - Suppress DECISION_TASK when the evidence already strongly indicates that no meaningful powder-oriented window is likely to exist, including during the short first-chair ski window.
+
+ALPINE LIFTS OPEN HISTORY
+
+- The data is ordered from today backward over the past few days (most recent day first).
+- Use this together with wind sensor observations as real-world operational context to help assess whether alpine lifts are likely to open tomorrow, especially under marginal or wind-sensitive setups.
+- Each daily entry may also include a `snow_report` string indicating if there's new snow on the day.
+- `opened_today` is the key day-level signal: it explicitly indicates whether that lift operated on the day represented by the enclosing entry.
+- If `opened_today` is false, the `opened` and `closed` timestamp strings should be treated only as the most recent recorded opening/closing timestamps for that lift and are NOT guaranteed to be same-day timestamps for the enclosing `day` entry.
+- If `opened_today` is true, treat the `opened` and `closed` timestamps as the operating window for that day, and you may use them to judge whether the lift was meaningfully open or only briefly opened.
+- Therefore, when reasoning about carry-over powder or day-level alpine access, use `opened_today` first, then interpret `opened` / `closed` accordingly.
+- If a lift appears to have operated on that day but only for a very short window (less than 1 hour), treat that as effectively not meaningfully open for carry-over powder / alpine-access reasoning.
+
+{{LIFT_HISTORY}}
 
 OUTPUT FORMAT
 

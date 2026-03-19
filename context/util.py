@@ -32,8 +32,8 @@ def format_generated_at_pst() -> str:
 
 def seconds_until_next_run(run_again: bool) -> int:
     now = datetime.now(timezone.utc).astimezone(TIME_ZONE)
-    morning_target = now.replace(hour=9, minute=0, second=0, microsecond=0)
-    afternoon_target = now.replace(hour=17, minute=0, second=0, microsecond=0)
+    morning_target = now.replace(hour=10, minute=0, second=0, microsecond=0)
+    afternoon_target = now.replace(hour=16, minute=0, second=0, microsecond=0)
     if now < morning_target:
         target = morning_target
     elif run_again and now < afternoon_target:

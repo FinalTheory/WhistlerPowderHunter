@@ -103,8 +103,8 @@ class ChatGPTSession:
     def history(self) -> List[Dict[str, object]]:
         return list(self.messages)
 
-    def dump_to(self, file_name: str) -> None:
-        debug_dir = BASE_DIR / "debug"
+    def dump_to(self, dir_name: str) -> None:
+        debug_dir = BASE_DIR / dir_name
         debug_dir.mkdir(parents=True, exist_ok=True)
         messages = copy.deepcopy([m for m in self.messages if m])
         image_index = 1
@@ -123,5 +123,5 @@ class ChatGPTSession:
                     image_index += 1
                 content["image_url"]["url"] = ""
 
-        with open(debug_dir / Path(file_name).name, "w") as f:
+        with open(debug_dir / Path("message.txt").name, "w") as f:
             f.write(json.dumps(messages, indent=2))

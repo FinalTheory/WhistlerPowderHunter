@@ -2,10 +2,6 @@
 
 Task: DECISION_TASK
 
-Condition:
-Use this task to synthesize tactical ski decisions across already-selected weather tasks.
-This task is optional and should be included only when the system needs explicit go/no-go guidance.
-
 Inputs:
 - Outputs/signals from other selected tasks.
 - RWDI synopsis and provided model/sensor context already in conversation.
@@ -13,7 +9,7 @@ Inputs:
 - HRDPS hourly frames from latest run time to next local 11:00 (Whistler PST/PDT) are already provided for DECISION_TASK in the current conversation context.
 
 Goal:
-Provide clear tactical decisions for:
+Synthesize already-selected weather-task signals into explicit powder-oriented tactical decisions, rather than generic skiability commentary. Provide clear tactical decisions for:
 1) tomorrow daytime,
 2) day-after-tomorrow daytime,
 and briefly indicate whether a better powder window is likely after that (without requesting out-of-window data).

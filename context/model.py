@@ -379,7 +379,7 @@ MODEL_GROUPS: List[ModelGroup] = [
         models=[
             AvalancheCanadaModel("ac_gdps", "AC_GDPS_EPA_clds-th-500hts", max_forecast_hour=144, step_hours=6, annotate=WHISTLER_AC_LOCATION),
             PivotalWeatherModel("rdps", "prateptype-met", "ca_w", annotate=WHISTLER_REGIONAL_LOCATION),
-            PivotalWeatherModel("hrdps", "prateptype-met", "ca_w", annotate=WHISTLER_REGIONAL_LOCATION),
+            PivotalWeatherModel("hrdps", "prateptype-met", "ca_w", annotate=WHISTLER_REGIONAL_LOCATION, run_selector=PivotalWeatherModel.latest_run),
             PivotalWeatherModel("nam", "ref1km_ptype", "ca_w", hide=True, feed=False, annotate=WHISTLER_REGIONAL_LOCATION),
         ],
     ),
