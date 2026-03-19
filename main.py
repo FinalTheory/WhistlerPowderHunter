@@ -18,11 +18,8 @@ def parse_args() -> argparse.Namespace:
     parser.add_argument("--workers", type=int, default=12, help="Thread pool size")
     parser.add_argument("--debug", action="store_true", help="Run once and exit instead of looping every 24h")
     parser.add_argument("--no-gpt", action="store_true", help="Do not call chatgpt.")
-    parser.add_argument(
-        "--wait",
-        action="store_true",
-        help="Do not run immediately on startup; wait until the next scheduled run time.",
-    )
+    parser.add_argument("--wait", action="store_true", help="Do not run immediately on startup; wait until the next scheduled run time.")
+    parser.add_argument("--run-again", action="store_true", help="Decide if trigger the afternoon run.")
     return parser.parse_args()
 
 
@@ -39,7 +36,7 @@ def main() -> None:
         time.sleep(sleep_seconds)
 
     if args.wait:
-        do_sleep(False)
+        do_sleep(args.run_again)
 
     while True:
         run_again = False

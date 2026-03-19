@@ -47,3 +47,5 @@ ALPINE_LIFTS = {
     "Showcase T-bar",
     "Glacier Express",
 }
+
+RESORT_CLOSE_HOUR = 16

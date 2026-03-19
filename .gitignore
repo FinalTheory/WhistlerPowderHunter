@@ -4,4 +4,5 @@ data/
 index.html
 high-level-goal.md
 debug/
+/run/
 /log.txt

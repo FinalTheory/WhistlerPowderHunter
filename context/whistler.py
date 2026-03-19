@@ -1,12 +1,23 @@
 import concurrent.futures
 import re
+from datetime import date, datetime
 from typing import Dict, List, Optional
 
 import requests
 from bs4 import BeautifulSoup
 
-from context.constant import DEFAULT_HEADERS, ALPINE_LIFTS
-from context.util import log
+from context.constant import DEFAULT_HEADERS, ALPINE_LIFTS, TIME_ZONE
+
+
+WEEKDAY_INDEX = {
+    "monday": 0,
+    "tuesday": 1,
+    "wednesday": 2,
+    "thursday": 3,
+    "friday": 4,
+    "saturday": 5,
+    "sunday": 6,
+}
 
 
 def fetch_sensor_data() -> Dict[str, List[str]]:
@@ -34,10 +45,7 @@ def fetch_sensor_data() -> Dict[str, List[str]]:
         future_to_loc = {executor.submit(fetch_one, url): loc for url, loc in zip(sensor_urls, locations)}
         for future in concurrent.futures.as_completed(future_to_loc):
             loc = future_to_loc[future]
-            try:
-                sensor_data[loc] = transform(future.result())
-            except Exception as exc:
-                log(f"Sensor fetch failed: {loc}: {exc}")
+            sensor_data[loc] = transform(future.result())
     return sensor_data
 
 
@@ -81,6 +89,19 @@ def fetch_lift_history(url: str = "https://whistlerpeak.com/lift-history/read_js
         parts = [" ".join(s.strip().split()) for s in div.stripped_strings]
         return " ".join(p for p in parts if p)
 
+    def _infer_recent_weekday_date(day_label: str) -> date:
+        weekday_name = day_label.strip().lower()
+        today = datetime.now(TIME_ZONE).date()
+        delta_days = (today.weekday() - WEEKDAY_INDEX[weekday_name]) % 7
+        return today.fromordinal(today.toordinal() - delta_days)
+
+    def _parse_snow_report_date(report: str) -> date:
+        month_text, day_text = report.split(':')[0].split()
+        return datetime.strptime(
+            f"{datetime.now(TIME_ZONE).year} {month_text} {day_text}",
+            "%Y %b %d",
+        ).date()
+
     headers = dict(DEFAULT_HEADERS)
     resp = requests.get(url, headers=headers, timeout=10)
     if resp.status_code != 200:
@@ -122,18 +143,23 @@ def fetch_lift_history(url: str = "https://whistlerpeak.com/lift-history/read_js
             lifts.append({
                 "lift": name,
                 "mountain": mountain,
-                "opened": _cell_text(open_div),
-                "closed": _cell_text(close_div),
+                "last_opened": _cell_text(open_div),
+                "last_closed": _cell_text(close_div),
                 "opened_today": bool(open_div.select_one(".underTimeClass")),
             })
 
         if lifts:
             out.append({"day": day_label, "lifts": lifts})
 
-    recent_snow_history = list(reversed(fetch_snow_history()[-keep_days:]))
+    snow_history_by_date: Dict[date, str] = {}
+    for snow_report in fetch_snow_history():
+        report_date = _parse_snow_report_date(snow_report)
+        snow_history_by_date[report_date] = snow_report
 
-    for day_entry, snow_report in zip(out, recent_snow_history):
-        day_entry["snow_report"] = snow_report
+    for day_entry in out:
+        inferred_date = _infer_recent_weekday_date(str(day_entry["day"]))
+        day_entry["day"] = str(inferred_date)
+        day_entry["snow_report"] = snow_history_by_date.get(inferred_date, "")
     return out
 
 

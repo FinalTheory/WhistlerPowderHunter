@@ -5,7 +5,7 @@ from typing import List, Optional
 
 from PIL import Image, ImageDraw
 
-from context.constant import BASE_DIR, LOG_PATH, TIME_ZONE
+from context.constant import BASE_DIR, LOG_PATH, TIME_ZONE, RESORT_CLOSE_HOUR
 
 
 def log(msg, stdout: bool = True) -> None:
@@ -25,6 +25,12 @@ def trunc_to_hour(dt: datetime, hour: int) -> datetime:
     return dt.replace(hour=hour, minute=0, second=0, microsecond=0)
 
 
+def decide_forecast_image_start_time():
+    now = datetime.now(TIME_ZONE)
+    close = trunc_to_hour(now, RESORT_CLOSE_HOUR)
+    return max(now, close)
+
+
 def format_generated_at_pst() -> str:
     now_pst = datetime.now(timezone.utc).astimezone(TIME_ZONE)
     return now_pst.strftime("%Y-%m-%d %H:%M %Z")
@@ -33,7 +39,7 @@ def format_generated_at_pst() -> str:
 def seconds_until_next_run(run_again: bool) -> int:
     now = datetime.now(timezone.utc).astimezone(TIME_ZONE)
     morning_target = now.replace(hour=10, minute=0, second=0, microsecond=0)
-    afternoon_target = now.replace(hour=16, minute=0, second=0, microsecond=0)
+    afternoon_target = now.replace(hour=16, minute=30, second=0, microsecond=0)
     if now < morning_target:
         target = morning_target
     elif run_again and now < afternoon_target:

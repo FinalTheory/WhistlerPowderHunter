@@ -135,6 +135,7 @@ Suppression rules for `run_again=false`:
 Important:
 - Do not require certainty before using `run_again=true`. If later same-day information has a realistic chance to change the powder-oriented decision, `run_again=true` is appropriate.
 - `run_again` is about whether later same-day updates may materially improve tomorrow-focused decision quality, not about whether today's weather is interesting on its own.
+- If using `run_again=true`, briefly explain in both `summary.en` and `summary.zh` why a same-day afternoon update is still worth watching, so the user understands what remains unresolved and why more waiting is useful.
 
 ======
 
