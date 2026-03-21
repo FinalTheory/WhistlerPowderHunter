@@ -29,6 +29,14 @@ Analysis focus:
    - Do models agree on peak wind magnitude and timing?
    - Distinguish minor timing/strength differences from structural disagreement.
 
+Operational nuance:
+- Do not treat avalanche-control difficulty as a routine standalone reason to assume alpine will remain closed.
+- If lift-operating conditions are otherwise workable, assume patrol will generally make a serious effort to open alpine terrain.
+- Also consider avalanche-control difficulty as an operational constraint.
+- If overnight snowfall is heavy (roughly >35 cm) and forecast wind remains elevated through the following morning alpine-opening window, or meaningful precipitation continues into that same window, increase operational risk because patrol may have greater difficulty completing avalanche control in time for full alpine opening.
+- In this setup, explicitly note that alpine may open late, partially, or not fully, not only because of direct wind exposure, but also because avalanche control may remain incomplete.
+- If the operation-risk signal is elevated for this reason, give a brief note in the summary that Blackcomb may be operationally favored over Whistler because avalanche control on the Whistler side is often more complex.
+
 Decision logic:
 - If all models indicate LOW or MARGINAL winds, finalize assessment without requesting additional images.
 - If any model indicates sustained HIGH winds with potential alpine impact,
@@ -38,3 +46,4 @@ Notes:
 - Focus on trend and decision relevance, not exact wind speed values.
 - If recent lift history already shows non-openings of major alpine lifts under observed winds, say so explicitly as operational support.
 - Keep uncertainty explicit and conservative.
+- Do not provide avalanche safety or travel advice; keep any avalanche-control discussion strictly limited to lift-opening / operations risk.
