@@ -64,7 +64,7 @@ Use this task only for powder-oriented tactical timing, not for generic "is skii
 
 Select DECISION_TASK when ALL of the following are true:
 - The next 2 days contain a realistic powder-chasing timing question, rather than merely a skiable but low-value warm storm.
-- RWDI indicates at least one of the following:
+- Provided information indicates at least one of the following:
   - an overnight snowfall window with effective accumulation around 10cm or more before 8am local Whistler time (PST/PDT), or
   - sustained snowfall with a realistic chance of preserving worthwhile dry-snow quality into the primary ski window, or
   - recent observed snowfall statistics show meaningful upper-mountain/alpine accumulation from the ongoing or previous days, alpine access was materially limited or closed during that snowfall, and next-day temperature / wind / access trends leave a realistic question of preserved worthwhile powder in the next primary ski window, or
