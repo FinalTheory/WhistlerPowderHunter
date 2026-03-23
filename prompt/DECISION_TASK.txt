@@ -58,11 +58,16 @@ Decision logic:
    - Dense wet snowfall, storm-skiing refresh, or merely skiable wet/rain mid-mountain conditions do NOT by themselves qualify as worthwhile powder value.
 
 2. Carry-over preserved powder support
-   - Treat recently accumulated but not meaningfully accessed powder as valid snow support for the next primary ski window.
-   - If substantial snow has already fallen in ski-relevant terrain, alpine access was materially limited or closed during that snowfall, and temperature / phase remain supportive of preservation into the next primary window, do NOT default to NO_GO merely because additional overnight snowfall is limited.
-   - If alpine access is likely to improve enough for a broadly worthwhile primary ski window, this carry-over setup can justify GO.
-   - If preserved powder quality still looks worthwhile but the opportunity depends on fragile access timing or fragile preservation into the primary ski window, use GO_WITH_RISK.
-   - Do not upgrade on this basis if warming, rain, settlement, crusting, or continued operational restriction is likely to materially degrade the opportunity before or during the primary ski window.
+   - Treat recently accumulated but not meaningfully accessed snow as valid carry-over support for later powder decisions.
+   - Count carry-over support only when all of the following are reasonably supported:
+     - substantial snow has already fallen in ski-relevant terrain
+     - alpine access was materially limited or closed during that snowfall, or is very likely to remain materially limited or closed while that snowfall is occurring
+     - temperature / phase / settlement risk still support preservation into the next target primary ski window
+   - For tomorrow: if today's carry-over support is strong and tomorrow's operational risk is low enough for broad alpine access, that alone can justify GO even if additional overnight snowfall is limited.
+   - For tomorrow: if the preserved opportunity still looks worthwhile but depends on fragile access timing or fragile preservation into tomorrow's primary ski window, use GO_WITH_RISK instead of GO.
+   - For day-after-tomorrow: if the main snowfall event is expected tomorrow and tomorrow itself carries substantial operational risk, do not assume the day-after outcome is already GO. Instead, state explicitly in the note that day-after-tomorrow could upgrade to GO if tomorrow's alpine mostly stays closed and the snow is preserved well enough.
+   - For `Next Better Window`: if the main snowfall event occurs tomorrow, day-after-tomorrow, or both, and operational risk looks high across those storm days, `Next Better Window` may be YES even without requiring a fresh new snowfall cycle afterward. In that case, say clearly that the upside comes from likely carry-over snow preserved by alpine closure rather than from a new storm.
+   - Do not upgrade on this basis if warming, rain, settlement, crusting, or continued operational restriction is likely to materially degrade the opportunity before or during the relevant primary ski window.
 
 3. Wind-first operational constraint
    - If strong wind is likely to shut or severely limit alpine through most of the primary ski window, default to NO_GO unless there is clear evidence of a short early alpine-access window that still preserves worthwhile powder quality.
