@@ -8,7 +8,9 @@ DEFAULT_HEADERS = {
     "user-agent": (
         "Mozilla/5.0 (Macintosh; Intel Mac OS X 10_15_7) "
         "AppleWebKit/537.36 (KHTML, like Gecko) Chrome/144.0.0.0 Safari/537.36"
-    )
+    ),
+    "sec-ch-ua": '"Chromium";v="146", "Not-A.Brand";v="24", "Google Chrome";v="146"',
+    "accept-language": "en-CA,en;q=0.9,zh-CN;q=0.8,zh;q=0.7"
 }
 
 BASE_DIR = Path(__file__).resolve().parent.parent
