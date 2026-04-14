@@ -20,7 +20,7 @@ def build_task_prompt(model_data: Dict[str, object]) -> str:
 
 
 def build_router_body() -> str:
-    local_today = datetime.now(TIME_ZONE).strftime('%Y-%m-%d %H:%M %Z')
+    local_today = datetime.now(TIME_ZONE).replace(minute=0, second=0, microsecond=0).strftime('%Y-%m-%d %H:00 %Z')
     return f"""
 
 ======

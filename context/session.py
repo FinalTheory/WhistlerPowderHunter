@@ -1,7 +1,6 @@
 import base64
 import copy
 import json
-import os
 from pathlib import Path
 from typing import Dict, List, Optional
 
@@ -10,26 +9,40 @@ from openai import OpenAI
 from context.constant import BASE_DIR, PRODUCT_META
 from context.util import log, sort_images_by_valid_time
 
+CODEX_BASE_URL = "https://chatgpt.com/backend-api/codex"
+HERMES_AUTH_PATH = Path.home() / ".hermes" / "auth.json"
+
 
 class ChatGPTSession:
     """Stateful helper to talk to ChatGPT with images while retaining context."""
 
     def __init__(self, model: str, data_root: Path) -> None:
-        self.api_key = os.getenv("OPENAI_API_KEY")
-        if not self.api_key:
-            raise RuntimeError("OPENAI_API_KEY is not set")
+        self.api_key = self._resolve_api_key()
+        self.client = OpenAI(api_key=self.api_key, base_url=CODEX_BASE_URL)
         self.model = model
+        self.data_root = data_root
         self.messages: List[Dict[str, object]] = []
         self._sent_images: set[Path] = set()
+        self.conversation_id: Optional[str] = None
         self.token_used = 0
         self.token_limit = 300000
 
+    def _resolve_api_key(self) -> str:
+        if not HERMES_AUTH_PATH.exists():
+            raise RuntimeError("OPENAI_API_KEY is not set and ~/.hermes/auth.json was not found")
+        auth_payload = json.loads(HERMES_AUTH_PATH.read_text(encoding="utf-8"))
+        return auth_payload["providers"]["openai-codex"]["tokens"]["access_token"]
+
     def append_prompt(self, prompt: str) -> None:
-        self.messages.append({"role": "system", "content": prompt})
+        message = {
+            "role": "developer",
+            "content": [{"type": "input_text", "text": prompt}],
+        }
+        self.messages.append(message)
 
     def append(self, message: str, image_paths: Optional[List[Path]] = None) -> None:
-        images = sort_images_by_valid_time(image_paths) or []
-        user_content: List[Dict[str, object]] = [{"type": "text", "text": message}]
+        images = sort_images_by_valid_time(image_paths) if image_paths else []
+        user_content: List[Dict[str, object]] = [{"type": "input_text", "text": message}]
 
         for img in images:
             if img in self._sent_images or not img.exists():
@@ -53,7 +66,7 @@ class ChatGPTSession:
                 if product_desc:
                     label_lines.append(f"Product Description: {product_desc}")
                 label_lines.append("Note: Whistler location is marked by a red dot on the image.")
-                user_content.append({"type": "text", "text": "\n".join(label_lines)})
+                user_content.append({"type": "input_text", "text": "\n".join(label_lines)})
             except Exception:
                 log(f"Image metadata parse failed, skip this image: {img}")
 
@@ -61,39 +74,83 @@ class ChatGPTSession:
             if img.suffix.lower() in {".jpg", ".jpeg"}:
                 mime = "image/jpeg"
             img_b64 = base64.b64encode(img.read_bytes()).decode("ascii")
-            user_content.append({"type": "image_url", "image_url": {"url": f"data:{mime};base64,{img_b64}"}})
+            user_content.append(
+                {
+                    "type": "input_image",
+                    "image_url": f"data:{mime};base64,{img_b64}",
+                    "detail": "auto",
+                }
+            )
             self._sent_images.add(img)
 
-        self.messages.append({"role": "user", "content": user_content})
+        user_message = {"role": "user", "content": user_content}
+        self.messages.append(user_message)
 
-    def send(self, json_schema: Optional[Dict[str, object]] = None, max_retries: int = 3) -> Dict[str, object]:
-        client = OpenAI(api_key=self.api_key)
+    def _extract_tool_payload(
+        self,
+        response,
+        streamed_tool_calls: List[object],
+        expected_tool_name: str,
+    ) -> Dict[str, object]:
+        for tool_call in streamed_tool_calls:
+            if getattr(tool_call, "name", None) == expected_tool_name:
+                return json.loads(getattr(tool_call, "arguments", "{}"))
+        for item in getattr(response, "output", []):
+            if getattr(item, "type", None) != "function_call":
+                continue
+            if getattr(item, "name", None) != expected_tool_name:
+                continue
+            return json.loads(getattr(item, "arguments", "{}"))
+        raise RuntimeError(f"Model did not call expected tool: {expected_tool_name}")
+
+    def send(self, tool_schema: Dict[str, object], max_retries: int = 3) -> Dict[str, object]:
         last_error = None
 
         for _ in range(max_retries):
             if self.token_used > self.token_limit:
                 raise RuntimeError(f"Token budget exceeded: used {self.token_used} > limit {self.token_limit}")
-            request_kwargs: Dict[str, object] = {"model": self.model, "messages": self.messages}
-            if json_schema is not None:
-                request_kwargs["response_format"] = {"type": "json_schema", "json_schema": json_schema}
-            resp = client.chat.completions.create(**request_kwargs)
-            choices = resp.choices or []
-            reply = choices[0].message.content if choices else None
-            if reply is None:
-                last_error = ValueError("Empty reply from assistant")
-                continue
-            usage = getattr(resp, "usage", None) or {}
-            if isinstance(usage, dict):
-                tokens = usage.get("total_tokens")
-            else:
-                tokens = getattr(usage, "total_tokens", None)
+            request_kwargs: Dict[str, object] = {
+                "model": self.model,
+                "input": self.messages,
+                "instructions": "You are a meteorologist.",
+                "store": False,
+                "tools": [tool_schema],
+                "tool_choice": {"type": "function", "name": tool_schema["name"]},
+            }
+            if self.conversation_id:
+                request_kwargs["conversation"] = self.conversation_id
+                print("Sending to to conversation_id=[{}]".format(self.conversation_id))
+            streamed_tool_calls: List[object] = []
+            with self.client.responses.stream(**request_kwargs) as stream:
+                for event in stream:
+                    if getattr(event, "type", "") != "response.output_item.done":
+                        continue
+                    item = getattr(event, "item", None)
+                    if getattr(item, "type", None) != "function_call":
+                        continue
+                    streamed_tool_calls.append(item)
+                resp = stream.get_final_response()
+            usage = getattr(resp, "usage", None)
+            tokens = getattr(usage, "total_tokens", None)
             try:
                 self.token_used += int(tokens)
             except:
                 log(f"Unable to parse used tokens: '{tokens}'")
             try:
-                parsed = json.loads(reply)
-                self.messages.append({"role": "assistant", "content": reply})
+                parsed = self._extract_tool_payload(resp, streamed_tool_calls, tool_schema["name"])
+                self.messages.append(
+                    {
+                        "role": "assistant",
+                        "content": json.dumps(
+                            {"tool_name": tool_schema["name"], "arguments": parsed}, ensure_ascii=False,
+                        ),
+                    }
+                )
+                conversation = getattr(resp, "conversation", None)
+                conversation_id = getattr(conversation, "id", None)
+                if conversation_id:
+                    self.conversation_id = conversation_id
+                    print("Allocated conversation_id=[{}]".format(conversation_id))
                 return parsed
             except Exception as exc:
                 last_error = exc
@@ -112,16 +169,16 @@ class ChatGPTSession:
             if msg.get("role") != "user":
                 continue
             for content in msg.get("content", []):
-                if content.get("type") != "image_url":
+                if content.get("type") != "input_image":
                     continue
-                url = content.get("image_url", {}).get("url")
+                url = content.get("image_url")
                 if url and url.startswith("data:"):
                     header, payload = url.split(",", 1)
                     mime = header.split(";", 1)[0][5:]
                     suffix = ".jpg" if mime == "image/jpeg" else ".png"
                     (debug_dir / f"{image_index}{suffix}").write_bytes(base64.b64decode(payload))
                     image_index += 1
-                content["image_url"]["url"] = ""
+                content["image_url"] = ""
 
         with open(debug_dir / Path("message.txt").name, "w") as f:
             f.write(json.dumps(messages, indent=2))

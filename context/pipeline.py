@@ -12,10 +12,12 @@ from context.session import ChatGPTSession
 from context.task import TASK_DEFINITION, select_init_images
 from context.util import format_generated_at_pst, log, prune_old_runs
 
-TASK_SELECTION_JSON_SCHEMA = {
-    "name": "task_scheduler_output",
+TASK_SELECTION_TOOL = {
+    "type": "function",
+    "name": "submit_task_scheduler_output",
+    "description": "Submit the selected weather analysis tasks for this forecast cycle.",
     "strict": True,
-    "schema": {
+    "parameters": {
         "type": "object",
         "properties": {
             "tasks": {"type": "array", "items": {"type": "string", "enum": list(TASK_DEFINITION.keys())}},
@@ -27,10 +29,12 @@ TASK_SELECTION_JSON_SCHEMA = {
     },
 }
 
-TASK_OUTPUT_JSON_SCHEMA: Dict[str, object] = {
-    "name": "task_analysis_output",
+TASK_OUTPUT_TOOL: Dict[str, object] = {
+    "type": "function",
+    "name": "submit_task_analysis_output",
+    "description": "Submit the final bilingual weather summary and rerun recommendation.",
     "strict": True,
-    "schema": {
+    "parameters": {
         "type": "object",
         "properties": {
             "need": {"type": "array", "items": {"type": "string"}},
@@ -55,7 +59,7 @@ def call_chatgpt_analysis(args: argparse.Namespace, data_root: Path) -> Tuple[Di
     gpt.append_prompt(build_router_prompt())
     gpt.append(build_router_body(), image_paths=init_images)
     if not args.no_gpt:
-        response = gpt.send(json_schema=TASK_SELECTION_JSON_SCHEMA)
+        response = gpt.send(tool_schema=TASK_SELECTION_TOOL)
     else:
         response = {"tasks": list(TASK_DEFINITION.keys())}
     tasks = response.get("tasks", [])
@@ -70,7 +74,7 @@ def call_chatgpt_analysis(args: argparse.Namespace, data_root: Path) -> Tuple[Di
         with open(prompt_path, "r") as prompt_file:
             gpt.append(prompt_file.read(), image_paths=TASK_DEFINITION[task](data_root))
     if not args.no_gpt:
-        response = gpt.send(json_schema=TASK_OUTPUT_JSON_SCHEMA)
+        response = gpt.send(tool_schema=TASK_OUTPUT_TOOL)
         gpt.dump_to("run/" + datetime.now().strftime("%Y%m%d%H"))
     else:
         gpt.dump_to("debug")

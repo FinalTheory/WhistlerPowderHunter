@@ -31,7 +31,7 @@ The product is designed around two decision horizons:
 
 System structure:
 - Frontend: a lightweight validation UI for grouped forecast images and generated conclusions.
-- Backend: a Python workflow that fetches model/sensor data, routes tasks, calls the LLM for analysis, and renders output to `index.html`.
+- Backend: a Python workflow that fetches model/sensor data, routes tasks, keeps a stateful OpenAI Responses API conversation across routing and analysis stages, and renders output to `index.html`.
 
 The backend architecture is scheduler + specialist analysis:
 - Stage 1 (routing): choose which tasks are worth running from RWDI synopsis and Avalanche Canada forecast images.
@@ -112,7 +112,7 @@ Whistler Powder Hunter 是一个面向滑雪决策的天气分析项目，目标
 
 系统结构：
 - 前端：用于快速校验结论的轻量 Web UI，展示分组气象图与分析结果。
-- 后端：Python 流水线，负责抓取模型/传感器数据、任务路由、调用 LLM 分析，并渲染输出到 `index.html`。
+- 后端：Python 流水线，负责抓取模型/传感器数据、任务路由、通过具备会话连续性的 OpenAI Responses API 调用 LLM 分析，并渲染输出到 `index.html`。
 
 后端系统采用任务调度 + 专项分析的思路：
 - 第一层（调度）：根据 RWDI 文本和 Avalanche Canada 图像，选择最值得分析的任务。
