@@ -124,14 +124,9 @@ def render_viewer_html(
     synopsis: Dict[str, str],
     generated_at: str,
     output_path: Path,
-    limited_coverage: bool,
 ) -> Path:
     template = VIEWER_TEMPLATE.read_text(encoding="utf-8")
     rendered = template.replace("{{ groups_json|safe }}", json.dumps(groups_payload))
-    rendered = rendered.replace("{{ coverage_notice }}", "" if not limited_coverage else (
-        "Limited coverage · Pivotal Weather model charts are unavailable. "
-        "部分数据缺失 · 本期缺少 Pivotal Weather 模式图。"
-    ))
     rendered = rendered.replace("{{ synopsis_text_zh|safe }}", sanitize_synopsis(synopsis.get("zh", "NO Chinese Data")))
     rendered = rendered.replace("{{ synopsis_text_en|safe }}", sanitize_synopsis(synopsis.get("en", "NO DATA")))
     rendered = rendered.replace("{{ generated_at|safe }}", generated_at)

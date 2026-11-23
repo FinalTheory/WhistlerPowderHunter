@@ -6,7 +6,7 @@ from typing import Dict, Tuple
 from context.constant import PROMPT_BASE_DIR
 from context.download import download_all_models
 from context.inventory import build_data_inventory, build_groups_payload, render_viewer_html
-from context.model import MODELS, PivotalWeatherModel, RunPlan
+from context.model import MODELS
 from context.prompt import build_router_body, build_task_prompt, build_router_prompt
 from context.session import ChatGPTSession
 from context.task import TASK_DEFINITION, select_init_images
@@ -57,12 +57,6 @@ def call_chatgpt_analysis(args: argparse.Namespace, data_root: Path) -> Tuple[Di
         log(debug)
     log(f"Tasks = {tasks}")
     gpt.append_prompt(build_task_prompt(build_data_inventory(data_root)))
-    if args.skip_pivotal:
-        gpt.append_prompt(
-            "Pivotal Weather model charts were unavailable for this forecast. "
-            "State the resulting limits on multi-model agreement and regional wind guidance. "
-            "Do not interpret missing evidence as a weak signal or absence of a powder event."
-        )
     for task in tasks:
         prompt_path = PROMPT_BASE_DIR / f"{task}.txt"
         with open(prompt_path, "r") as prompt_file:
@@ -81,22 +75,17 @@ def call_chatgpt_analysis(args: argparse.Namespace, data_root: Path) -> Tuple[Di
 
 def run_analysis(args: argparse.Namespace) -> bool:
     data_root = args.out / "data"
-    enabled_models = []
     for model in MODELS:
         model.clear_cached_plan()
-        if args.skip_pivotal and isinstance(model, PivotalWeatherModel):
-            model.set_cached_plan(RunPlan("", [], model.product, 0))
-        else:
-            enabled_models.append(model)
 
-    download_all_models(models=enabled_models, output_dir=data_root, workers=args.workers, overwrite=False)
+    download_all_models(models=MODELS, output_dir=data_root, workers=args.workers, overwrite=False)
     groups = build_groups_payload(data_root)
     if not groups:
         raise RuntimeError("No forecast images available to publish")
 
     summary, run_again = call_chatgpt_analysis(args, data_root)
     index_path = args.out / "index.html"
-    render_viewer_html(groups, summary, format_generated_at_local(), index_path, args.skip_pivotal)
+    render_viewer_html(groups, summary, format_generated_at_local(), index_path)
     published_runs = {(model["name"], model["run"]) for group in groups for model in group["models"]}
     prune_old_runs(data_root, days=2, keep=published_runs)
     log(f"Run again: {run_again}")

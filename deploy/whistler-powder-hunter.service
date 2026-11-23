@@ -13,7 +13,7 @@ Environment=CODEX_HOME=/var/lib/whistler/codex
 Environment=WHISTLER_CODEX_BIN=/opt/whistler/bin/codex
 Environment=PYTHONDONTWRITEBYTECODE=1
 UnsetEnvironment=OPENAI_API_KEY CODEX_API_KEY CODEX_ACCESS_TOKEN
-ExecStart=/opt/whistler/venv/bin/python -u /opt/whistler/app/main.py --out /var/lib/whistler/public --skip-pivotal
+ExecStart=/opt/whistler/venv/bin/python -u /opt/whistler/app/main.py --out /var/lib/whistler/public
 Restart=on-failure
 RestartSec=30s
 UMask=0022
