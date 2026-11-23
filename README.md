@@ -86,20 +86,20 @@ Reference context for users:
 
 The generator needs Python 3.12 or later, the packages in `requirements.txt`, and a recent Codex CLI signed in to ChatGPT. Run `python main.py --debug --out /path/to/output` to generate one report. The CLI consumes the account's available Codex usage. The application explicitly selects ChatGPT login and excludes OpenAI API key environment variables. See [Codex authentication](https://developers.openai.com/codex/auth) and [non-interactive mode](https://developers.openai.com/codex/noninteractive).
 
-The included [systemd unit](deploy/whistler-powder-hunter.service) runs the generator under the dedicated `whistler` user. It generates a report at startup, then at about 10:00 Vancouver time daily, with an additional run around 16:30 when the report requests one. When Whistler Peak's snow history is unavailable, the generator still includes lift history and labels missing snow observations in the analysis inputs.
+The included [systemd unit](deploy/whistler-powder-hunter.service) runs the generator as `god`. It generates a report at startup, then at about 10:00 Vancouver time daily, with an additional run around 16:30 when the report requests one. When Pivotal Weather returns no run data, the generator uses the available forecast sources. When Whistler Peak's snow history is unavailable, the generator still includes lift history and labels missing snow observations in the analysis inputs.
 
-The included [Nginx configuration](deploy/nginx.conf) serves the rendered report and forecast images from `/var/lib/whistler/public`. The app and virtual environment live under `/opt/whistler`. Codex stores login state in the private `/var/lib/whistler/codex` directory, and systemd captures application logs. The site's certificate uses Certbot webroot validation at `/var/lib/whistler-acme`.
+The app lives at `/home/god/services/whistler`, with its virtual environment in `.venv` and the Codex CLI at `bin/codex`. The service can read the app directory and stores its writable state in `/var/lib/whistler`. Codex keeps its login state in the private `/var/lib/whistler/codex` directory. The included [Nginx configuration](deploy/nginx.conf) serves reports and forecast images from `/var/lib/whistler/public`. The site's certificate uses Certbot webroot validation at `/var/lib/whistler-acme`.
 
 On the VPS:
 
 ```sh
 systemctl status whistler-powder-hunter.service
 journalctl -u whistler-powder-hunter.service -n 60 --no-pager
-runuser -u whistler -- env CODEX_HOME=/var/lib/whistler/codex /opt/whistler/bin/codex login status
+runuser -u god -- env HOME=/var/lib/whistler CODEX_HOME=/var/lib/whistler/codex /home/god/services/whistler/bin/codex login status
 certbot renew --cert-name whistler.finaltheory.me --dry-run
 ```
 
-If ChatGPT authentication expires, renew the dedicated server login with `runuser -u whistler -- env CODEX_HOME=/var/lib/whistler/codex /opt/whistler/bin/codex login --device-auth` and complete the browser prompt. Restart the service to generate a fresh report immediately.
+If ChatGPT authentication expires, renew the service login with `runuser -u god -- env HOME=/var/lib/whistler CODEX_HOME=/var/lib/whistler/codex /home/god/services/whistler/bin/codex login --device-auth` and complete the browser prompt. Restart the service to generate a fresh report immediately.
 
 ### Roadmap
 

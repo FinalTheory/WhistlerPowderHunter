@@ -5,24 +5,26 @@ After=network-online.target
 
 [Service]
 Type=simple
-User=whistler
-Group=whistler
-WorkingDirectory=/opt/whistler/app
+User=god
+Group=god
+WorkingDirectory=/home/god/services/whistler
 Environment=HOME=/var/lib/whistler
 Environment=CODEX_HOME=/var/lib/whistler/codex
-Environment=WHISTLER_CODEX_BIN=/opt/whistler/bin/codex
+Environment=WHISTLER_CODEX_BIN=/home/god/services/whistler/bin/codex
 Environment=PYTHONDONTWRITEBYTECODE=1
 UnsetEnvironment=OPENAI_API_KEY CODEX_API_KEY CODEX_ACCESS_TOKEN
-ExecStart=/opt/whistler/venv/bin/python -u /opt/whistler/app/main.py --out /var/lib/whistler/public
+ExecStart=/home/god/services/whistler/.venv/bin/python -u /home/god/services/whistler/main.py --out /var/lib/whistler/public
 Restart=on-failure
 RestartSec=30s
 UMask=0022
 NoNewPrivileges=yes
 CapabilityBoundingSet=
 PrivateTmp=yes
-ProtectHome=yes
+ProtectHome=tmpfs
+BindReadOnlyPaths=/home/god/services/whistler
 ProtectSystem=strict
-ReadWritePaths=/var/lib/whistler
+StateDirectory=whistler
+StateDirectoryMode=0711
 SyslogIdentifier=whistler-powder-hunter
 
 [Install]

@@ -39,6 +39,7 @@ class ModelConfig(ABC):
         self.feed = feed
         self.annotate = annotate
         self._cached_plan: Optional[RunPlan] = None
+        self._plan_is_cached = False
 
     @property
     def id(self) -> str:
@@ -90,11 +91,13 @@ class ModelConfig(ABC):
     def get_cached_plan(self) -> Optional[RunPlan]:
         return self._cached_plan
 
-    def set_cached_plan(self, plan: RunPlan) -> None:
+    def set_cached_plan(self, plan: Optional[RunPlan]) -> None:
         self._cached_plan = plan
+        self._plan_is_cached = True
 
     def clear_cached_plan(self) -> None:
         self._cached_plan = None
+        self._plan_is_cached = False
 
 
 class PivotalWeatherModel(ModelConfig):
@@ -144,6 +147,9 @@ class PivotalWeatherModel(ModelConfig):
                     time.sleep(2)
                     continue
                 raise
+        if resp.status_code == 202 and not resp.content:
+            log(f"Pivotal Weather returned no run data for {name}/{product}/{region} (HTTP 202)")
+            return []
         resp.raise_for_status()
         payload = resp.json()
         data = payload.get("data")
@@ -200,12 +206,12 @@ class PivotalWeatherModel(ModelConfig):
         return tasks
 
     def list_forecast_images(self):
-        cached = self.get_cached_plan()
-        if cached is not None:
-            return cached
+        if self._plan_is_cached:
+            return self.get_cached_plan()
         runs = self.fetch_runs_beta(self.name, self.product, self.region)
         run = self.run_selector(runs) if runs else None
         if not run:
+            self.set_cached_plan(None)
             return None
         forecasts = run.get("forecasts", {}) or {}
         plan = RunPlan(
