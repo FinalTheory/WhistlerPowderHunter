@@ -7,6 +7,7 @@ import requests
 from bs4 import BeautifulSoup
 
 from context.constant import DEFAULT_HEADERS, ALPINE_LIFTS, TIME_ZONE
+from context.util import log
 
 
 WEEKDAY_INDEX = {
@@ -57,31 +58,40 @@ def fetch_rwdi_forecast(url: str = "https://www.whistlerpeak.com/forecast/block-
     if resp.status_code != 200:
         raise RuntimeError(f"RWDI forecast fetch failed: status {resp.status_code}")
 
-    from bs4 import BeautifulSoup
     soup = BeautifulSoup(resp.text, "html.parser")
 
     synopsis_text: Optional[str] = None
-    summary = soup.select_one("#summaryContent, .summaryContent, .summaryContent__body")
+    issued_at: Optional[str] = None
+    summary = soup.select_one(".rwdi-synopsis-full")
     if summary:
-        parts = [el.get_text(" ", strip=True) for el in summary.find_all(["p", "div", "span"])]
-        merged = " ".join(p for p in parts if p)
-        merged = re.sub(r"\s+", " ", merged).strip()
-        synopsis_text = merged or None
+        synopsis_text = " ".join(p.get_text(" ", strip=True) for p in summary.select("p"))
+        timestamp = summary.select_one("time[datetime]")
+        if timestamp:
+            issued_at = timestamp["datetime"]
+    else:
+        summary = soup.select_one("#summaryContent, .summaryContent, .summaryContent__body")
+        if summary:
+            synopsis_text = summary.get_text(" ", strip=True)
+    synopsis_text = re.sub(r"\s+", " ", synopsis_text).strip() if synopsis_text else None
 
     days: List[Dict[str, str]] = []
-    for card in soup.select(".alpine__card"):
+    for card in soup.select(".rwdi-period-card, .alpine__card"):
         heading = card.find(["h3", "h4"]) or card.select_one(".alpine__card__title")
         name = heading.get_text(" ", strip=True) if heading else ""
-        paragraphs = [p.get_text(" ", strip=True) for p in card.find_all("p")]
-        text = " ".join(p for p in paragraphs if p)
-        text = re.sub(r"\s+", " ", text).strip()
+        if "rwdi-period-card" in card.get("class", []):
+            text = " | ".join(
+                item.get_text(" ", strip=True)
+                for item in card.select("p, .om-card-stats .om-card-row")
+            )
+        else:
+            text = " ".join(p.get_text(" ", strip=True) for p in card.find_all("p"))
         if name or text:
-            days.append({"day": name, "text": text})
+            days.append({"day": name, "text": re.sub(r"\s+", " ", text).strip()})
 
     if not days and synopsis_text is None:
         raise RuntimeError("RWDI forecast parse failure: no synopsis or day cards found")
 
-    return {"synopsis": synopsis_text, "days": days}
+    return {"issued_at": issued_at, "synopsis": synopsis_text, "days": days}
 
 
 def fetch_lift_history(url: str = "https://whistlerpeak.com/lift-history/read_json_switch.php", keep_days: int = 5) -> List[Dict[str, object]]:
@@ -152,14 +162,19 @@ def fetch_lift_history(url: str = "https://whistlerpeak.com/lift-history/read_js
             out.append({"day": day_label, "lifts": lifts})
 
     snow_history_by_date: Dict[date, str] = {}
-    for snow_report in fetch_snow_history():
+    try:
+        snow_history = fetch_snow_history()
+    except (RuntimeError, requests.RequestException) as exc:
+        log(f"Snowfall history unavailable; retaining lift observations: {exc}")
+        snow_history = []
+    for snow_report in snow_history:
         report_date = _parse_snow_report_date(snow_report)
         snow_history_by_date[report_date] = snow_report
 
     for day_entry in out:
         inferred_date = _infer_recent_weekday_date(str(day_entry["day"]))
         day_entry["day"] = str(inferred_date)
-        day_entry["snow_report"] = snow_history_by_date.get(inferred_date, "")
+        day_entry["snow_report"] = snow_history_by_date.get(inferred_date, "Unavailable")
     return out
 
 

@@ -1,24 +1,15 @@
 import shutil
 from datetime import datetime, timedelta, timezone
 from pathlib import Path
-from typing import List, Optional
 
 from PIL import Image, ImageDraw
 
-from context.constant import BASE_DIR, LOG_PATH, TIME_ZONE, RESORT_CLOSE_HOUR
+from context.constant import TIME_ZONE, RESORT_CLOSE_HOUR
 
 
-def log(msg, stdout: bool = True) -> None:
-    if stdout:
-        print(msg)
+def log(msg) -> None:
     timestamp = datetime.now(timezone.utc).strftime("%Y-%m-%d %H:%M:%S %Z")
-    line = f"[{timestamp}] {msg}"
-    try:
-        LOG_PATH.parent.mkdir(parents=True, exist_ok=True)
-        with LOG_PATH.open("a", encoding="utf-8") as fh:
-            fh.write(line + "\n")
-    except Exception:
-        pass
+    print(f"[{timestamp}] {msg}")
 
 
 def trunc_to_hour(dt: datetime, hour: int) -> datetime:
@@ -31,9 +22,9 @@ def decide_forecast_image_start_time():
     return max(now, close)
 
 
-def format_generated_at_pst() -> str:
-    now_pst = datetime.now(timezone.utc).astimezone(TIME_ZONE)
-    return now_pst.strftime("%Y-%m-%d %H:%M %Z")
+def format_generated_at_local() -> str:
+    local_now = datetime.now(timezone.utc).astimezone(TIME_ZONE)
+    return local_now.strftime("%Y-%m-%d %H:%M (Whistler, UTC%z)")
 
 
 def seconds_until_next_run(run_again: bool) -> int:
@@ -72,23 +63,7 @@ def add_red_dot(path: Path, x: int, y: int, radius: int) -> None:
     img.save(path)
 
 
-def sort_images_by_valid_time(image_paths: List[Path]) -> List[Path]:
-    def extract_sort_key(path: Path):
-        try:
-            rel_parts = path.relative_to(BASE_DIR).parts
-            if len(rel_parts) < 5 or rel_parts[0] != "data":
-                raise ValueError(f"Unexpected image path layout: {path}")
-            model_name = rel_parts[1]
-            product_name = rel_parts[3]
-            valid_dt = parse_utc_timestamp(Path(rel_parts[4]).stem)
-            return (0, valid_dt, model_name, product_name, str(path))
-        except Exception:
-            return (1, datetime.max, "zz_unknown", "zz_unknown", str(path))
-
-    return sorted(list(dict.fromkeys(image_paths)), key=extract_sort_key)
-
-
-def prune_old_runs(root: Path, days: int = 2) -> None:
+def prune_old_runs(root: Path, *, days: int, keep: set[tuple[str, str]]) -> None:
     if not root.exists():
         return
     cutoff = datetime.now(timezone.utc) - timedelta(days=days)
@@ -98,5 +73,5 @@ def prune_old_runs(root: Path, days: int = 2) -> None:
                 run_dt = datetime.strptime(run_dir.name, "%Y%m%d%H").replace(tzinfo=timezone.utc)
             except ValueError:
                 continue
-            if run_dt < cutoff:
+            if run_dt < cutoff and (model_dir.name, run_dir.name) not in keep:
                 shutil.rmtree(run_dir, ignore_errors=True)

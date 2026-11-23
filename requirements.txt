@@ -1,0 +1,4 @@
+beautifulsoup4==4.15.0
+jsonschema==4.26.0
+Pillow==13.0.0
+requests==2.34.2

@@ -262,22 +262,11 @@
       font-size: 12px;
       margin: 0;
     }
-    .log-link {
-      display: inline-block;
-      background: #0c162c;
-      border: 1px solid var(--border);
-      color: var(--accent);
-      padding: 6px 10px;
-      border-radius: 8px;
-      font-size: 12px;
-      text-decoration: none;
-      opacity: 0.85;
-      transition: opacity 120ms ease, box-shadow 120ms ease;
+    .coverage-notice {
+      margin: 6px 0 0;
+      font-size: 13px;
     }
-    .log-link:hover {
-      opacity: 1;
-      box-shadow: 0 0 0 1px var(--border), 0 6px 18px rgba(0, 0, 0, 0.35);
-    }
+    .coverage-notice:empty { display: none; }
     .support-fab {
       position: fixed;
       right: 18px;
@@ -361,6 +350,7 @@
   <header>
     <div class="title">Whistler Powder Hunter</div>
     <div class="generated-at">Report generated at {{ generated_at|safe }}</div>
+    <p class="coverage-notice">{{ coverage_notice }}</p>
   </header>
   <section class="synopsis">
     <div class="synopsis-header">
@@ -374,7 +364,6 @@
 
   <div class="footer-bar">
     <div class="footer-note">Drag the slider to switch forecast hour. Blank panels indicate no data for that model at the selected hour.</div>
-    <a class="log-link" href="./log.txt" target="_blank" rel="noreferrer">View log</a>
   </div>
 
   <div class="support-fab" data-open="false">
@@ -398,7 +387,7 @@
   </div>
 
   <script>
-    // Groups payload is injected by FastAPI/Jinja.
+    // Forecast groups are injected when the report is rendered.
     const groups = {{ groups_json|safe }};
     const isFileProtocol = window.location.protocol === "file:";
 
@@ -471,7 +460,7 @@
     function formatLocalLabelFromUtc(ts) {
       const date = parseTimestamp(ts);
       if (!date) return ts;
-      // America/Vancouver is UTC-8 or UTC-7 depending on DST. Using Intl for correctness.
+      // Use the named Whistler time zone for forecast labels.
       const fmt = new Intl.DateTimeFormat("en-CA", {
         timeZone: "America/Vancouver",
         year: "numeric",

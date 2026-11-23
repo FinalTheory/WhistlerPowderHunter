@@ -1,7 +1,10 @@
 import json
 from datetime import datetime
 from pathlib import Path
+from tempfile import NamedTemporaryFile
 from typing import Dict, List, Optional
+
+from bs4 import BeautifulSoup
 
 from context.constant import FRAME_TS_RE, VIEWER_TEMPLATE
 from context.model import MODEL_GROUPS, MODELS, ModelConfig
@@ -102,13 +105,40 @@ def build_data_inventory(data_root: Path) -> Dict[str, object]:
     return inventory
 
 
-def render_viewer_html(groups_payload: List[Dict[str, object]], synopsis: Dict[str, str], generated_at: str, output_path: Path) -> Path:
-    if not VIEWER_TEMPLATE.exists():
-        raise FileNotFoundError(f"Template not found: {VIEWER_TEMPLATE}")
+def sanitize_synopsis(fragment: str) -> str:
+    soup = BeautifulSoup(fragment, "html.parser")
+    for tag in soup.find_all(["script", "style", "svg", "math", "template"]):
+        tag.decompose()
+
+    allowed_tags = {"p", "h2", "h3", "h4", "ul", "ol", "li", "strong", "em", "b", "i", "br", "hr", "blockquote"}
+    for tag in soup.find_all(True):
+        if tag.name in allowed_tags:
+            tag.attrs.clear()
+        else:
+            tag.unwrap()
+    return str(soup)
+
+
+def render_viewer_html(
+    groups_payload: List[Dict[str, object]],
+    synopsis: Dict[str, str],
+    generated_at: str,
+    output_path: Path,
+    limited_coverage: bool,
+) -> Path:
     template = VIEWER_TEMPLATE.read_text(encoding="utf-8")
     rendered = template.replace("{{ groups_json|safe }}", json.dumps(groups_payload))
-    rendered = rendered.replace("{{ synopsis_text_zh|safe }}", synopsis.get("zh", "NO Chinese Data"))
-    rendered = rendered.replace("{{ synopsis_text_en|safe }}", synopsis.get("en", "NO DATA"))
+    rendered = rendered.replace("{{ coverage_notice }}", "" if not limited_coverage else (
+        "Limited coverage · Pivotal Weather model charts are unavailable. "
+        "部分数据缺失 · 本期缺少 Pivotal Weather 模式图。"
+    ))
+    rendered = rendered.replace("{{ synopsis_text_zh|safe }}", sanitize_synopsis(synopsis.get("zh", "NO Chinese Data")))
+    rendered = rendered.replace("{{ synopsis_text_en|safe }}", sanitize_synopsis(synopsis.get("en", "NO DATA")))
     rendered = rendered.replace("{{ generated_at|safe }}", generated_at)
-    output_path.write_text(rendered, encoding="utf-8")
+    with NamedTemporaryFile(dir=output_path.parent, encoding="utf-8", mode="w", delete=False) as temporary:
+        temporary.write(rendered)
+        temporary.flush()
+        temp_path = Path(temporary.name)
+        temp_path.chmod(0o644)
+    temp_path.replace(output_path)
     return output_path

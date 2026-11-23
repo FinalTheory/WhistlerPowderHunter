@@ -268,15 +268,19 @@ class AvalancheCanadaModel(ModelConfig):
                 return False
             _, probe_url, _ = tasks[0]
             try:
-                resp = sess.get(probe_url, headers=DEFAULT_HEADERS, timeout=10, stream=True)
-                return resp.status_code == 200
-            except Exception:
+                with sess.get(probe_url, headers=DEFAULT_HEADERS, timeout=10, stream=True) as resp:
+                    return resp.status_code == 200
+            except requests.RequestException:
                 return False
 
         run_dt = self._select_run_dt()
-        while not run_available(run_dt):
+        for _ in range(4):
+            if run_available(run_dt):
+                break
             log(f"Avalanche Canada model run {run_dt} not available, step back for 12 hrs")
             run_dt -= timedelta(hours=12)
+        else:
+            raise RuntimeError("No Avalanche Canada model run available in the last four cycles")
 
         plan = RunPlan(
             run_hour=run_dt.strftime("%Y%m%d%H"),

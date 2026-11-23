@@ -20,6 +20,7 @@ def parse_args() -> argparse.Namespace:
     parser.add_argument("--no-gpt", action="store_true", help="Do not call chatgpt.")
     parser.add_argument("--wait", action="store_true", help="Do not run immediately on startup; wait until the next scheduled run time.")
     parser.add_argument("--run-again", action="store_true", help="Decide if trigger the afternoon run.")
+    parser.add_argument("--skip-pivotal", action="store_true", help="Skip Pivotal Weather imagery and label the reduced coverage.")
     return parser.parse_args()
 
 

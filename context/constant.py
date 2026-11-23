@@ -15,7 +15,6 @@ DEFAULT_HEADERS = {
 
 BASE_DIR = Path(__file__).resolve().parent.parent
 VIEWER_TEMPLATE = BASE_DIR / "template.html"
-LOG_PATH = BASE_DIR / "log.txt"
 PROMPT_BASE_DIR = BASE_DIR / "prompt"
 INIT_PROMPT_PATH = PROMPT_BASE_DIR / "prompt_init.txt"
 TASK_PROMPT_PATH = PROMPT_BASE_DIR / "prompt_task.txt"

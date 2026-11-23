@@ -20,12 +20,14 @@ def build_task_prompt(model_data: Dict[str, object]) -> str:
 
 
 def build_router_body() -> str:
-    local_today = datetime.now(TIME_ZONE).replace(minute=0, second=0, microsecond=0).strftime('%Y-%m-%d %H:00 %Z')
+    local_now = datetime.now(TIME_ZONE)
     return f"""
 
 ======
 
-Reference date: today in Whistler local time is {local_today}.
+Reference date: today in Whistler is {local_now:%Y-%m-%d}. The current local hour began at {local_now:%H}:00.
+Use Whistler local time (America/Vancouver, UTC{local_now:%z}) for all decision windows and
+time labels. Use the stated offset when converting UTC; refer to local times as Whistler time.
 Snow/lift history includes today and the previous local days.
 All tactical decisions should be made for the next 2 local days after this reference date.
 

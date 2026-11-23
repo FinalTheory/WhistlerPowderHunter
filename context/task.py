@@ -31,7 +31,8 @@ def select_precip_images(data_root: Path) -> List[Path]:
     group2 = MODEL_GROUPS[0][0].select(data_root, start, end) + MODEL_GROUPS[0][2].select(data_root, start, end)[::6]
     now = datetime.now(TIME_ZONE)
     group3 = SATELLITE_IMAGE.select(data_root, now - timedelta(hours=3), now)
-    group3 = [group3[0], group3[len(group3) // 2], group3[-1]]
+    if group3:
+        group3 = [group3[0], group3[len(group3) // 2], group3[-1]]
     # group1: percip images of all models from now to tomorrow afternoon, per 3hrs
     # group2: percip images of avalanche canada + HRDPS from tomorrow evening to day-after-tomorrow noon, per 6hrs
     # group3: satellite images for past 3hrs

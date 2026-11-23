@@ -2,7 +2,7 @@
 
 English | [中文](#中文)
 
-[DEMO](https://blog.finaltheory.me/whistler/)
+[DEMO](https://whistler.finaltheory.me/)
 
 <img src="https://raw.githubusercontent.com/FinalTheory/WhistlerPowderHunter/refs/heads/main/demo.jpg" style="zoom:30%;" />
 
@@ -31,7 +31,7 @@ The product is designed around two decision horizons:
 
 System structure:
 - Frontend: a lightweight validation UI for grouped forecast images and generated conclusions.
-- Backend: a Python workflow that fetches model/sensor data, routes tasks, keeps a stateful OpenAI Responses API conversation across routing and analysis stages, and renders output to `index.html`.
+- Backend: a Python workflow that fetches model/sensor data, routes tasks, passes the routing result and forecast images to the official Codex CLI, and renders output to `index.html`.
 
 The backend architecture is scheduler + specialist analysis:
 - Stage 1 (routing): choose which tasks are worth running from RWDI synopsis and Avalanche Canada forecast images.
@@ -57,7 +57,7 @@ Task dimensions:
 The UI is intentionally designed for quick human double-check after LLM output:
 - A top summary panel presents the model conclusion in plain language, including status and uncertainty.
 - Forecast images of multiple models are grouped by decision dimension (regional precipitation, wind trend, global pattern) so users can verify the conclusion against the exact evidence.
-- Frames are labeled with model run and valid time metadata in both UTC and PST, to reduce misread risk and make duplicate or missing inputs obvious.
+- Frames are labeled with model run and valid time metadata in both UTC and Whistler local time, to reduce misread risk and make duplicate or missing inputs obvious.
 - Time slider and side-by-side layout let users quickly inspect trend continuity and model divergence without digging through raw files.
 
 The practical goal is simple: let users do a rapid second-pass sanity check.
@@ -81,6 +81,25 @@ Reference context for users:
 
 - This project supports in-bounds ski weather decisions; it does not provide backcountry avalanche travel guidance.
 - The system prioritizes trend and risk interpretation rather than deterministic single-point forecasts.
+
+### VPS deployment
+
+The generator needs Python 3.12 or later, the packages in `requirements.txt`, and a recent Codex CLI signed in to ChatGPT. Run `python main.py --debug --out /path/to/output` to generate one report. The CLI consumes the account's available Codex usage. The application explicitly selects ChatGPT login and excludes OpenAI API key environment variables. See [Codex authentication](https://developers.openai.com/codex/auth) and [non-interactive mode](https://developers.openai.com/codex/noninteractive).
+
+The included [systemd unit](deploy/whistler-powder-hunter.service) runs the generator under the dedicated `whistler` user. It generates a report at startup, then at about 10:00 Vancouver time daily, with an additional run around 16:30 when the report requests one. The deployment uses `--skip-pivotal` because Pivotal Weather is unavailable to this host. The report labels the missing chart coverage. When Whistler Peak's snow history is unavailable, the generator still includes lift history and labels missing snow observations in the analysis inputs.
+
+The included [Nginx configuration](deploy/nginx.conf) serves the rendered report and forecast images from `/var/lib/whistler/public`. The app and virtual environment live under `/opt/whistler`. Codex stores login state in the private `/var/lib/whistler/codex` directory, and systemd captures application logs. The site's certificate uses Certbot webroot validation at `/var/lib/whistler-acme`.
+
+On the VPS:
+
+```sh
+systemctl status whistler-powder-hunter.service
+journalctl -u whistler-powder-hunter.service -n 60 --no-pager
+runuser -u whistler -- env CODEX_HOME=/var/lib/whistler/codex /opt/whistler/bin/codex login status
+certbot renew --cert-name whistler.finaltheory.me --dry-run
+```
+
+If ChatGPT authentication expires, renew the dedicated server login with `runuser -u whistler -- env CODEX_HOME=/var/lib/whistler/codex /opt/whistler/bin/codex login --device-auth` and complete the browser prompt. Restart the service to generate a fresh report immediately.
 
 ### Roadmap
 
@@ -112,7 +131,7 @@ Whistler Powder Hunter 是一个面向滑雪决策的天气分析项目，目标
 
 系统结构：
 - 前端：用于快速校验结论的轻量 Web UI，展示分组气象图与分析结果。
-- 后端：Python 流水线，负责抓取模型/传感器数据、任务路由、通过具备会话连续性的 OpenAI Responses API 调用 LLM 分析，并渲染输出到 `index.html`。
+- 后端：Python 流水线，负责抓取模型/传感器数据、任务路由、通过官方 Codex CLI 提交路由结果和带时间标签的图像进行分析，并渲染输出到 `index.html`。
 
 后端系统采用任务调度 + 专项分析的思路：
 - 第一层（调度）：根据 RWDI 文本和 Avalanche Canada 图像，选择最值得分析的任务。
@@ -138,7 +157,7 @@ Whistler Powder Hunter 是一个面向滑雪决策的天气分析项目，目标
 这个 UI 的设计目标是让用户在看完 LLM 结论后，能够快速做一次人工复核：
 - 顶部总结区先给出结论、状态和不确定性，先看结论再看证据。
 - 多模型图像按决策维度分组（区域降水、风场趋势、全球背景场），方便用户针对性核验。
-- 每张图都带 model run 和 valid time（UTC + PST）标签，能快速发现图像重复、缺失或时间戳错位。
+- 每张图都带 model run 和 valid time（UTC + 惠斯勒当地时间）标签，能快速发现图像重复、缺失或时间戳错位。
 - 时间滑块 + 并排布局可以快速检查趋势连续性和多个模型发散程度，而不必肉眼逐个对比。
 
 目标很简单：让结论可被快速二次校验。毕竟人脑不消耗 token :)
