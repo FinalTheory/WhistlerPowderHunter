@@ -105,13 +105,6 @@ def fetch_lift_history(url: str = "https://whistlerpeak.com/lift-history/read_js
         delta_days = (today.weekday() - WEEKDAY_INDEX[weekday_name]) % 7
         return today.fromordinal(today.toordinal() - delta_days)
 
-    def _parse_snow_report_date(report: str) -> date:
-        month_text, day_text = report.split(':')[0].split()
-        return datetime.strptime(
-            f"{datetime.now(TIME_ZONE).year} {month_text} {day_text}",
-            "%Y %b %d",
-        ).date()
-
     headers = dict(DEFAULT_HEADERS)
     resp = requests.get(url, headers=headers, timeout=10)
     if resp.status_code != 200:
@@ -161,41 +154,39 @@ def fetch_lift_history(url: str = "https://whistlerpeak.com/lift-history/read_js
         if lifts:
             out.append({"day": day_label, "lifts": lifts})
 
-    snow_history_by_date: Dict[date, str] = {}
+    snow_history_by_day: Dict[str, str] = {}
     try:
         snow_history = fetch_snow_history()
     except (RuntimeError, requests.RequestException) as exc:
         log(f"Snowfall history unavailable; retaining lift observations: {exc}")
         snow_history = []
     for snow_report in snow_history:
-        report_date = _parse_snow_report_date(snow_report)
-        snow_history_by_date[report_date] = snow_report
+        snow_history_by_day.setdefault(snow_report.partition(":")[0], snow_report)
 
     for day_entry in out:
         inferred_date = _infer_recent_weekday_date(str(day_entry["day"]))
         day_entry["day"] = str(inferred_date)
-        day_entry["snow_report"] = snow_history_by_date.get(inferred_date, "Unavailable")
+        day_entry["snow_report"] = snow_history_by_day.get(f"{inferred_date:%b} {inferred_date.day}", "Unavailable")
     return out
 
 
-def fetch_snow_history(url: str = "https://whistlerpeak.com/get_chart_data.php") -> List[str]:
-    def _format_cm(value: object) -> str:
-        return f"{value:g}cm" if isinstance(value, (int, float)) else f"{str(value).strip()}cm"
+def fetch_snow_history(url: str = "https://whistlerpeak.com/snow/history/block-history-grid.php") -> List[str]:
+    resp = requests.get(url, headers=DEFAULT_HEADERS, timeout=10)
+    resp.raise_for_status()
+    soup = BeautifulSoup(resp.text, "html.parser")
+    dates = soup.select(".day-container > .dayData")
+    if not dates:
+        raise RuntimeError("Snow history parse failure: no dated rows")
 
-    headers = dict(DEFAULT_HEADERS)
-    resp = requests.get(url, headers=headers, timeout=10)
-    if resp.status_code != 200:
-        raise RuntimeError(f"Snow history fetch failed: status {resp.status_code}")
+    def measurement(cell):
+        text = cell.get_text(strip=True) if cell else ""
+        return text if re.fullmatch(r"\d+(?:\.\d+)?cm", text) else "Unavailable"
 
-    data = resp.json()
-    dates = data.get("dates")
-    snowfall = data.get("snowfall")
-    base = data.get("base")
-    if len(dates) != len(snowfall) or len(dates) != len(base):
-        raise RuntimeError("Snow history parse failure: dates/snowfall/base length mismatch")
-
-    history: List[str] = []
-    for date, snow_value, base_value in zip(dates, snowfall, base):
-        date_text = str(date).strip()
-        history.append(f"{date_text}: {_format_cm(snow_value)} new snow, {_format_cm(base_value)} base")
+    history = []
+    for day in dates:
+        # The site gives zero and blank snow cells the class 'units'.
+        snow = measurement(day.parent.select_one(":scope > .snowData, :scope > .units"))
+        base = measurement(day.parent.select_one(":scope > .baseData"))
+        if snow != "Unavailable" or base != "Unavailable":
+            history.append(f"{day.get_text(strip=True)}: {snow} new snow, {base} base")
     return history
