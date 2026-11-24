@@ -31,11 +31,12 @@ The product is designed around two decision horizons:
 
 System structure:
 - Frontend: a lightweight validation UI for grouped forecast images and generated conclusions.
-- Backend: a Python workflow that fetches model/sensor data, routes tasks, passes the routing result and forecast images to the official Codex CLI, and renders output to `index.html`.
+- Backend: a Python workflow that fetches model and sensor data, runs one ephemeral Codex App Server thread per forecast, and renders output to `index.html`.
 
 The backend architecture is scheduler + specialist analysis:
 - Stage 1 (routing): choose which tasks are worth running from RWDI synopsis and Avalanche Canada forecast images.
-- Stage 2 (analysis): request only the minimum required images and produce bilingual conclusions.
+- Stage 2 (analysis): add sensor readings and images for the selected tasks to the same thread and produce bilingual conclusions.
+- When the analysis returns `need`, add up to six available charts from the run's inventory that the thread has yet to receive. The model may request up to three supplemental batches. The third batch closes image requests and requires a final bilingual report. Unfulfilled requests and evidence gaps are logged.
 - Observed context such as sensor data, lift history, and snowfall/base history will also be injected to help identify carry-over powder setups.
 
 Task dimensions:
@@ -84,7 +85,7 @@ Reference context for users:
 
 ### VPS deployment
 
-The generator needs Python 3.12 or later, the packages in `requirements.txt`, and a recent Codex CLI signed in to ChatGPT. Run `python main.py --debug --out /path/to/output` to generate one report. The CLI consumes the account's available Codex usage. The application explicitly selects ChatGPT login and excludes OpenAI API key environment variables. See [Codex authentication](https://developers.openai.com/codex/auth) and [non-interactive mode](https://developers.openai.com/codex/noninteractive).
+The generator needs Python 3.12 or later, the packages in `requirements.txt`, and the Codex CLI signed in to ChatGPT. The App Server integration was verified with CLI 0.171.0. Run `python main.py --debug --out /path/to/output` to generate one report. Add `--no-gpt` to save the inputs to `debug/message.txt` without a Codex call. Codex uses the account's available usage. The application selects ChatGPT sign-in and excludes API key environment variables. See [Codex authentication](https://developers.openai.com/codex/auth) and [Codex App Server](https://developers.openai.com/codex/app-server).
 
 The included [systemd unit](deploy/whistler-powder-hunter.service) runs the generator as `god`. It generates a report at startup, then at about 10:00 Vancouver time daily, with an additional run around 16:30 when the report requests one. When Pivotal Weather returns no run data, the generator uses the available forecast sources. When Whistler Peak's snow history is unavailable, the generator still includes lift history and labels missing snow observations in the analysis inputs.
 
@@ -131,11 +132,12 @@ Whistler Powder Hunter 是一个面向滑雪决策的天气分析项目，目标
 
 系统结构：
 - 前端：用于快速校验结论的轻量 Web UI，展示分组气象图与分析结果。
-- 后端：Python 流水线，负责抓取模型/传感器数据、任务路由、通过官方 Codex CLI 提交路由结果和带时间标签的图像进行分析，并渲染输出到 `index.html`。
+- 后端：Python 流水线负责抓取模型和传感器数据，每份预报使用一个临时 Codex App Server 会话，最后渲染输出到 `index.html`。
 
 后端系统采用任务调度 + 专项分析的思路：
 - 第一层（调度）：根据 RWDI 文本和 Avalanche Canada 图像，选择最值得分析的任务。
-- 第二层（分析）：按任务请求最小必要图像，输入到LLM，输出中英文气象总结与更新频率建议。
+- 第二层（分析）：在同一会话中补充传感器数据和选中任务的图像，输出中英文气象总结与更新频率建议。
+- 如果分析返回 `need`，系统会从本轮图像清单中追加最多六张尚未传入会话的图，每份报告最多补三轮。第三轮必须输出最终双语报告，未满足的请求和证据缺口记入日志。
 - 系统也会注入运营数据，例如传感器读数、缆车运行历史和 snowfall/base history，用来辅助识别 carry-over powder 场景。
 
 当前任务维度：

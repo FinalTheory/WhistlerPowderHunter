@@ -1,7 +1,8 @@
+import json
 from datetime import datetime
-from typing import Dict
 
 from context.constant import INIT_PROMPT_PATH, PRODUCT_META, TASK_PROMPT_PATH, TIME_ZONE
+from context.inventory import DataInventory
 from context.whistler import (
     fetch_lift_history,
     fetch_rwdi_forecast,
@@ -9,12 +10,12 @@ from context.whistler import (
 )
 
 
-def build_task_prompt(model_data: Dict[str, object]) -> str:
+def build_task_prompt(model_data: DataInventory) -> str:
     with TASK_PROMPT_PATH.open("r", encoding="utf-8") as prompt_file:
         return (
             prompt_file.read()
             .replace("{{PRODUCT_META}}", str(PRODUCT_META))
-            .replace("{{MODEL_DATA}}", str(model_data))
+            .replace("{{MODEL_DATA}}", json.dumps(model_data))
             .replace("{{SENSOR_DATA}}", str(fetch_sensor_data()))
         )
 

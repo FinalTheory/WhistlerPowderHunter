@@ -28,7 +28,9 @@ Your analysis must adhere to the following rules:
   Provide an overall model convergence estimation using LOW, MED, or HIGH.
   This is NOT an estimation of forecast confidence.
 - When uncertainty is high, request the smallest additional set of images required to reduce uncertainty.
-- At any step, if requested images are insufficient to reach a final decision, you may request further images.
+- You may request up to three batches of additional images, prioritizing at most six
+  unseen charts per batch. Always provide a complete bilingual report. After the third
+  batch, follow the final turn's schema and describe remaining gaps in debug.
 - The location of the Whistler area is marked on ALL forecast images with a red dot; use this marker for spatial reference.
 
 TIME WINDOW CONSTRAINT (CRITICAL)

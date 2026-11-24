@@ -11,6 +11,9 @@ from context.model import MODEL_GROUPS, MODELS, ModelConfig
 from context.util import hours_between
 
 
+DataInventory = dict[str, dict[str, dict[str, list[str]]]]
+
+
 def latest_run_dir(data_root: Path, model_name: str, product_dir: str) -> Optional[Path]:
     model_dir = data_root / model_name
     if not model_dir.exists():
@@ -89,19 +92,20 @@ def build_groups_payload(data_root: Path) -> List[Dict[str, object]]:
     return groups_payload
 
 
-def build_data_inventory(data_root: Path) -> Dict[str, object]:
-    inventory: Dict[str, Dict[str, Dict[str, List[str]]]] = {}
+def build_data_inventory(data_root: Path) -> DataInventory:
+    inventory: DataInventory = {}
     for model in MODELS:
         run_dir = latest_run_dir(data_root, model.name, model.product_dir)
         if not run_dir:
             continue
-        run_payload: Dict[str, List[str]] = {}
-        for product_dir in sorted(p for p in run_dir.iterdir() if p.is_dir()):
-            files = [f.name for f in sorted(product_dir.iterdir()) if f.is_file()]
-            if files:
-                run_payload[product_dir.name] = files
-        if run_payload:
-            inventory.setdefault(model.name, {})[run_dir.name] = run_payload
+        files = [
+            path.name
+            for path in sorted((run_dir / model.product_dir).iterdir())
+            if path.is_file() and path.suffix.lower() in {".png", ".jpg", ".jpeg"}
+            and FRAME_TS_RE.fullmatch(path.stem)
+        ]
+        if files:
+            inventory.setdefault(model.name, {}).setdefault(run_dir.name, {})[model.product_dir] = files
     return inventory
 
 
